@@ -1,0 +1,37 @@
+# Runs on GitHub for every push to main and every pull request into main.
+# A pull request can only be merged when this job is green.
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # A file added to git on Windows loses its "executable" flag.
+      - name: Make the Gradle wrapper executable
+        run: chmod +x gradlew
+
+      # Compiles everything, runs all tests, the architecture checks and the coverage gate.
+      - name: Build
+        run: ./gradlew build
+
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: '**/build/reports/tests/'

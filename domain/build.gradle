@@ -1,0 +1,55 @@
+// domain: all rules and state of the game.
+// It gets NO libGDX dependency, so "import com.badlogic.gdx..." cannot even compile here.
+// That is how the "domain must run in a plain JVM" rule is enforced.
+
+plugins {
+    // JaCoCo measures which lines of code the tests actually executed ("coverage").
+    id 'jacoco'
+}
+
+dependencies {
+    // "api" = modules that depend on domain can see Gson types too
+    // (save sections are exchanged as Gson JSON elements).
+    api libs.gson
+
+    testImplementation platform(libs.junit.bom)
+    testImplementation libs.junit.jupiter
+    testImplementation libs.assertj
+    testRuntimeOnly libs.junit.launcher
+}
+
+// ---- Coverage gate -------------------------------------------------------------------
+// The build fails if the tests execute less than 70 % of the lines in the packages below.
+// Skeleton features are NOT listed, otherwise their empty methods would break the build.
+// When you finish a feature: enable its tests and add its package here (see docs/DECISIONS.md, D-003).
+def coverageGatedPackages = [
+        'com/miniakvaryum/domain/core/**',
+        'com/miniakvaryum/domain/feature/economy/**',
+]
+
+tasks.named('test') {
+    // Always write the coverage report after the tests (domain/build/reports/jacoco).
+    finalizedBy tasks.named('jacocoTestReport')
+}
+
+tasks.named('jacocoTestCoverageVerification') {
+    dependsOn tasks.named('test')
+    // Look only at the gated packages.
+    classDirectories.setFrom(files(sourceSets.main.output.classesDirs.collect {
+        fileTree(dir: it, includes: coverageGatedPackages)
+    }))
+    violationRules {
+        rule {
+            limit {
+                counter = 'LINE'
+                value = 'COVEREDRATIO'
+                minimum = 0.70
+            }
+        }
+    }
+}
+
+// "check" is the task that "build" runs for all verifications; hook the gate into it.
+tasks.named('check') {
+    dependsOn tasks.named('jacocoTestCoverageVerification')
+}

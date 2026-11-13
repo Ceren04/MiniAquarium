@@ -1,0 +1,27 @@
+// desktop: starts the game in a window on a laptop.
+// The "application" plugin adds the task  ./gradlew :desktop:run
+
+plugins {
+    id 'application'
+}
+
+dependencies {
+    implementation project(':game')
+    implementation libs.gdx.lwjgl3
+    // Native libraries for Windows, Linux and macOS, needed only when the game runs.
+    runtimeOnly(variantOf(libs.gdx.platform) { classifier('natives-desktop') })
+}
+
+application {
+    mainClass = 'com.miniakvaryum.desktop.DesktopLauncher'
+}
+
+tasks.named('run') {
+    // libGDX loads files relative to the working directory, so it must be the assets folder.
+    workingDir = rootProject.file('assets')
+
+    // macOS only: the window system requires the main thread.
+    if (System.getProperty('os.name').toLowerCase().contains('mac')) {
+        jvmArgs '-XstartOnFirstThread'
+    }
+}

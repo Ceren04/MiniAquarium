@@ -1,0 +1,15 @@
+# Build output and Gradle caches
+build/
+.gradle/
+
+# IDE files
+.idea/
+*.iml
+.vscode/*
+!.vscode/launch.json
+!.vscode/settings.json
+
+# Save files of the game
+save.json
+save.json.*
+.mini-akvaryum/

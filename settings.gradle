@@ -1,0 +1,18 @@
+// settings.gradle: the first file Gradle reads.
+// It answers two questions: "what is this project called?" and "which modules does it have?"
+
+rootProject.name = 'mini-akvaryum'
+
+// Where Gradle downloads libraries from. Declared once here so every module uses the same source.
+dependencyResolutionManagement {
+    repositoriesMode = RepositoriesMode.FAIL_ON_PROJECT_REPOS
+    repositories {
+        mavenCentral()
+    }
+}
+
+// The three modules. Each name is a folder with its own build.gradle.
+// Allowed dependency direction: desktop -> game -> domain (never the reverse).
+include 'domain'   // game rules and state, plain Java, no libGDX
+include 'game'     // rendering, screens, input (libGDX)
+include 'desktop'  // opens the window on a laptop

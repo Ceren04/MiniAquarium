@@ -1,0 +1,7 @@
+# Keep line endings consistent between Windows, macOS and Linux.
+* text=auto
+# The Unix start script must keep LF endings, otherwise it fails on Linux and in CI.
+gradlew text eol=lf
+*.bat text eol=crlf
+*.jar binary
+*.png binary

@@ -1,0 +1,13 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Run Mini-Akvaryum (desktop)",
+            "request": "launch",
+            "mainClass": "com.miniakvaryum.desktop.DesktopLauncher",
+            "projectName": "desktop",
+            "cwd": "${workspaceFolder}/assets"
+        }
+    ]
+}

@@ -1,0 +1,13 @@
+// game: everything the player sees and touches (rendering, screens, input).
+// It may use domain and libGDX core, but knows nothing about the desktop window.
+
+dependencies {
+    // "api" = whoever depends on game (desktop) also sees domain and libGDX types.
+    api project(':domain')
+    api libs.gdx.core
+
+    testImplementation platform(libs.junit.bom)
+    testImplementation libs.junit.jupiter
+    testImplementation libs.assertj
+    testRuntimeOnly libs.junit.launcher
+}

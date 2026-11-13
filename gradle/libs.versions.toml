@@ -1,0 +1,23 @@
+# Version catalog: the ONLY place where library versions are written.
+# Build files refer to these entries as libs.<name> (dashes become dots: gdx-core -> libs.gdx.core).
+# To upgrade a library, change one line in [versions].
+
+[versions]
+gdx = "1.14.2"
+gson = "2.11.0"
+junit = "5.11.4"
+assertj = "3.27.3"
+
+[libraries]
+gdx-core = { module = "com.badlogicgames.gdx:gdx", version.ref = "gdx" }
+gdx-lwjgl3 = { module = "com.badlogicgames.gdx:gdx-backend-lwjgl3", version.ref = "gdx" }
+# Native (C/C++) part of libGDX. The desktop module adds the "natives-desktop" classifier to it.
+gdx-platform = { module = "com.badlogicgames.gdx:gdx-platform", version.ref = "gdx" }
+
+gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
+
+# The BOM pins the versions of all JUnit artifacts, so the two entries below need no version.
+junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
+junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
+junit-launcher = { module = "org.junit.platform:junit-platform-launcher" }
+assertj = { module = "org.assertj:assertj-core", version.ref = "assertj" }

@@ -1,0 +1,25 @@
+// Root build.gradle: configuration shared by ALL modules.
+// Module-specific things (which libraries a module may use) live in <module>/build.gradle.
+
+subprojects {
+    apply plugin: 'java-library'
+
+    group = 'com.miniakvaryum'
+    version = '0.1.0'
+
+    tasks.withType(JavaCompile).configureEach {
+        // Compile for Java 17 no matter which newer JDK a team member has installed.
+        // Using a Java 18+ API becomes a compile error. See docs/DECISIONS.md (D-001).
+        options.release = 17
+        options.encoding = 'UTF-8'
+    }
+
+    tasks.withType(Test).configureEach {
+        // Run tests with JUnit 5 ("JUnit Platform").
+        useJUnitPlatform()
+        testLogging {
+            events 'failed'
+            exceptionFormat = 'full'
+        }
+    }
+}
