@@ -3,8 +3,12 @@ package com.miniakvaryum.domain.feature.aquarium.api.food;
 import com.miniakvaryum.domain.core.events.EventBus;
 import com.miniakvaryum.domain.core.time.GameTime;
 import com.miniakvaryum.domain.core.util.IdGenerator;
+import com.miniakvaryum.domain.core.util.Vec2;
 import com.miniakvaryum.domain.feature.aquarium.AquariumConfig;
+import com.miniakvaryum.domain.feature.aquarium.WorldConfig;
 import com.miniakvaryum.domain.feature.aquarium.api.fish.FishEntity;
+import com.miniakvaryum.domain.feature.economy.api.Currency;
+import com.miniakvaryum.domain.feature.economy.api.TxResult;
 import com.miniakvaryum.domain.feature.economy.api.Wallet;
 import java.util.Objects;
 import java.util.Optional;
@@ -16,9 +20,12 @@ import java.util.Optional;
  * finished eating it.</b> A pellet that dissolves uneaten is free. To stop the child from
  * dropping more pellets than there is food, pellets in the water count as reserved.
  *
- * <p><b>SKELETON</b> (specification section 7.8). Tests: {@code FoodServiceTest}.
+ * <p>Tests: {@code FoodServiceTest}.
  */
 public final class FoodService {
+
+    private static final String REASON = "pellet";
+    private static final String REF_PREFIX = "pellet:";
 
     private final FoodField field;
     private final Wallet wallet;
@@ -45,45 +52,60 @@ public final class FoodService {
         this.events = Objects.requireNonNull(events, "events");
     }
 
-    /**
-     * Returns how many more pellets may be dropped.
-     *
-     * <p>TODO: FOOD balance minus the number of pellets in the water (FREE and CLAIMED).
-     */
+    /** Returns how many more pellets may be dropped: FOOD balance minus all pellets in the water. */
     public long available() {
-        throw new UnsupportedOperationException("TODO: FoodService.available is not implemented yet");
+        return wallet.balance(Currency.FOOD) - field.pellets().size();
     }
 
     /**
-     * Drops a pellet into the water at the given x.
-     *
-     * <p>TODO: if {@code available() <= 0} return empty. Otherwise clamp x into
-     * {@code [minFishX, maxFishX]}, add a FREE pellet at {@code (x, pelletStartY)} with a new
-     * id and return that id. Dropping does NOT change the wallet.
+     * Drops a pellet into the water at the given x. Dropping does NOT change the wallet.
      *
      * @return the id of the new pellet, or empty if no food is available
      */
     public Optional<String> drop(double x) {
-        throw new UnsupportedOperationException("TODO: FoodService.drop is not implemented yet");
+        if (!canDrop()) {
+            return Optional.empty();
+        }
+        WorldConfig world = config.world();
+        double clampedX = Math.max(world.minFishX(), Math.min(world.maxFishX(), x));
+        String id = ids.next();
+        field.add(id, new Vec2(clampedX, config.food().pelletStartY()));
+        return Optional.of(id);
     }
 
     /**
-     * A fish has finished its EAT action. This is one all-or-nothing step.
-     *
-     * <p>TODO:
-     * <ol>
-     *   <li>The pellet must exist and be CLAIMED by this fish; otherwise return
-     *       {@link EatResult#CLAIM_LOST} and change nothing.</li>
-     *   <li>{@code wallet.debit(FOOD, 1, "pellet", "pellet:" + pelletId, time.nowMillis())}.
-     *       If the result is not OK: release the pellet and return
-     *       {@link EatResult#INSUFFICIENT_FOOD}.</li>
-     *   <li>{@code fish.recordFeeding()}, remove the pellet, publish {@link FishFed},
-     *       return {@link EatResult#OK}.</li>
-     * </ol>
-     * Calling it twice for the same pellet must pay once: the second call finds no pellet and
-     * returns CLAIM_LOST.
+     * A fish has finished its EAT action. This is one all-or-nothing step: claim check, then
+     * payment, then the changes. Calling it twice for the same pellet pays once, because the
+     * first call removes the pellet and the second call finds no claim.
      */
     public EatResult completeEating(FishEntity fish, String pelletId) {
-        throw new UnsupportedOperationException("TODO: FoodService.completeEating is not implemented yet");
+        if (!isClaimedBy(pelletId, fish.id())) {
+            return EatResult.CLAIM_LOST;
+        }
+
+        TxResult payment = wallet.debit(Currency.FOOD, 1, REASON, REF_PREFIX + pelletId, time.nowMillis());
+        if (payment != TxResult.OK) {
+            field.release(pelletId, fish.id());
+            return EatResult.INSUFFICIENT_FOOD;
+        }
+
+        fish.recordFeeding();
+        field.remove(pelletId);
+        events.publish(new FishFed(fish.id(), fish.feedCount()));
+        return EatResult.OK;
+    }
+
+    private boolean isClaimedBy(String pelletId, String fishId) {
+        for (Pellet pellet : field.pellets()) {
+            if (pellet.id().equals(pelletId)) {
+                return pellet.state() == PelletState.CLAIMED && fishId.equals(pellet.claimedBy());
+            }
+        }
+        return false;
+    }
+    
+    private boolean canDrop() {
+    return available() > 0
+            && field.pellets().size() < config.food().maxPelletsInWater();
     }
 }

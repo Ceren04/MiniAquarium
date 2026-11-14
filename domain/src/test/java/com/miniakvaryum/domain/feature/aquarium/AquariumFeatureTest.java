@@ -105,11 +105,19 @@ class AquariumFeatureTest {
         assertThat(first.get("id").getAsString()).isEqualTo("id-1");
     }
 
-    @Test
-    void gameLoopRunsEvenWhileTheSimulationIsASkeleton() {
-        GameSession session = start(0.5, 0.5, 0.5, 0.5, 0.5, 0.5);
+   @Test
+    void gameLoopLetsEveryIdleFishChooseAnAction() {
+        // 6 start-position draws, then per fish: idle duration and look-around
+        GameSession session = start(0.5, 0.5, 0.5, 0.5, 0.5, 0.5,
+                                0.5, 0.5, 0.5, 0.5, 0.5, 0.5);
+        game.random.ints(3, 3, 3);   // one action draw per fish; 3 falls into IDLE
 
         session.tick(0.016);
         session.tick(0.016);
+
+        assertThat(session.get(AquariumWorld.class).fish()).allSatisfy(fish -> {
+        assertThat(fish.state().action()).isEqualTo(ActionType.IDLE);
+        assertThat(fish.state().remainingS()).isGreaterThan(0);
+        });
     }
 }

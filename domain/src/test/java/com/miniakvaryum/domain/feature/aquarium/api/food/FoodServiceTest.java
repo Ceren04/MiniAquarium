@@ -1,87 +1,226 @@
 package com.miniakvaryum.domain.feature.aquarium.api.food;
 
-import static org.assertj.core.api.Assertions.fail;
+import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.jupiter.api.Disabled;
+import com.miniakvaryum.domain.core.session.GameSession;
+import com.miniakvaryum.domain.core.util.Vec2;
+import com.miniakvaryum.domain.feature.aquarium.AquariumConfig;
+import com.miniakvaryum.domain.feature.aquarium.AquariumFeature;
+import com.miniakvaryum.domain.feature.aquarium.api.fish.FishEntity;
+import com.miniakvaryum.domain.feature.aquarium.api.world.AquariumWorld;
+import com.miniakvaryum.domain.feature.economy.EconomyConfig;
+import com.miniakvaryum.domain.feature.economy.EconomyFeature;
+import com.miniakvaryum.domain.feature.economy.api.Currency;
+import com.miniakvaryum.domain.feature.economy.api.TxResult;
+import com.miniakvaryum.domain.feature.economy.api.Wallet;
+import com.miniakvaryum.domain.testsupport.TestGame;
+import java.util.ArrayList;
+import java.util.List;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 /**
- * Required tests for feeding and food accounting (specification section 7.8).
- *
- * <p>How to work here: remove the {@code @Disabled} line of the class, then replace each
- * {@code fail(...)} with a real test. Start a game with
- * {@code new TestGame().start(new EconomyFeature(...), new AquariumFeature(...))} and get
- * {@code FoodService}, {@code AquariumWorld} and {@code Wallet} from the session.
+ * Tests for feeding and food accounting (specification section 9.4). A new game has 5 food and
+ * three fish; nothing in these tests ticks the game, so the fish never move.
  */
-@Disabled("TODO: enable when FoodService is implemented")
 class FoodServiceTest {
+
+    private final AquariumConfig config = AquariumConfig.defaults();
+    private final TestGame game = new TestGame();
+
+    private GameSession session;
+    private FoodService food;
+    private AquariumWorld world;
+    private Wallet wallet;
+
+    @BeforeEach
+    void startGame() {
+        game.random.doubles(0.5, 0.5, 0.5, 0.5, 0.5, 0.5); // start positions of the three fish
+        session = game.start(new EconomyFeature(EconomyConfig.defaults()), new AquariumFeature(config));
+        food = session.get(FoodService.class);
+        world = session.get(AquariumWorld.class);
+        wallet = session.get(Wallet.class);
+    }
+
+    private FishEntity fish(int index) {
+        return world.fish().get(index);
+    }
+
+    private String dropPellet(double x) {
+        return food.drop(x).orElseThrow();
+    }
+
+    private Pellet pellet(String id) {
+        return world.food().pellets().stream().filter(p -> p.id().equals(id)).findFirst().orElseThrow();
+    }
+
+    private long stock() {
+        return wallet.balance(Currency.FOOD);
+    }
 
     @Test
     void availableIsStockMinusPelletsInTheWater() {
-        // 5 food, 2 pellets dropped (one of them claimed): available is 3.
-        fail("TODO: write this test");
+        assertThat(food.available()).isEqualTo(5);
+
+        String first = dropPellet(300);
+        dropPellet(600);
+        world.food().tryClaim(first, fish(0).id());
+
+        assertThat(food.available()).isEqualTo(3);
     }
 
     @Test
     void dropCreatesAFreePelletAtTheStartHeight() {
-        fail("TODO: write this test");
+        String id = dropPellet(500);
+
+        assertThat(pellet(id).state()).isEqualTo(PelletState.FREE);
+        assertThat(pellet(id).position()).isEqualTo(new Vec2(500, config.food().pelletStartY()));
     }
 
     @Test
     void dropClampsXIntoTheSwimArea() {
-        fail("TODO: write this test");
+        String left = dropPellet(-100);
+        String right = dropPellet(5000);
+
+        assertThat(pellet(left).position().x()).isEqualTo(config.world().minFishX());
+        assertThat(pellet(right).position().x()).isEqualTo(config.world().maxFishX());
     }
 
     @Test
     void dropDoesNotChangeTheWallet() {
-        fail("TODO: write this test");
+        int entriesBefore = wallet.entries().size();
+
+        dropPellet(500);
+
+        assertThat(stock()).isEqualTo(5);
+        assertThat(wallet.entries()).hasSize(entriesBefore);
     }
 
     @Test
     void dropIsRefusedWhenNothingIsAvailable() {
-        // Also when the stock is 5 and 5 pellets are already in the water.
-        fail("TODO: write this test");
+        // 5 food and 5 pellets in the water: the whole stock is reserved.
+        for (int i = 0; i < 5; i++) {
+            dropPellet(100 + i * 100);
+        }
+
+        assertThat(food.drop(700)).isEmpty();
+        assertThat(world.food().pellets()).hasSize(5);
+        assertThat(stock()).isEqualTo(5);
     }
 
     @Test
     void stockDecreasesOnlyOnCompleteEating() {
-        fail("TODO: write this test");
+        String id = dropPellet(500);
+        assertThat(stock()).isEqualTo(5);
+
+        world.food().tryClaim(id, fish(0).id());
+        assertThat(stock()).isEqualTo(5);
+
+        food.completeEating(fish(0), id);
+        assertThat(stock()).isEqualTo(4);
     }
 
     @Test
     void completeEatingCountsTheFeedingAndRemovesThePellet() {
-        fail("TODO: write this test");
+        String id = dropPellet(500);
+        world.food().tryClaim(id, fish(0).id());
+
+        EatResult result = food.completeEating(fish(0), id);
+
+        assertThat(result).isEqualTo(EatResult.OK);
+        assertThat(fish(0).feedCount()).isEqualTo(1);
+        assertThat(world.food().pellets()).isEmpty();
     }
 
     @Test
     void completeEatingTwicePaysOnce() {
-        // Second call returns CLAIM_LOST.
-        fail("TODO: write this test");
+        String id = dropPellet(500);
+        world.food().tryClaim(id, fish(0).id());
+
+        EatResult first = food.completeEating(fish(0), id);
+        EatResult second = food.completeEating(fish(0), id);
+
+        assertThat(first).isEqualTo(EatResult.OK);
+        assertThat(second).isEqualTo(EatResult.CLAIM_LOST);
+        assertThat(stock()).isEqualTo(4);
+        assertThat(fish(0).feedCount()).isEqualTo(1);
     }
 
     @Test
     void completeEatingWithoutClaimChangesNothing() {
-        fail("TODO: write this test");
+        String id = dropPellet(500);
+
+        // Nobody claimed it.
+        assertThat(food.completeEating(fish(0), id)).isEqualTo(EatResult.CLAIM_LOST);
+
+        // Another fish claimed it.
+        world.food().tryClaim(id, fish(1).id());
+        assertThat(food.completeEating(fish(0), id)).isEqualTo(EatResult.CLAIM_LOST);
+
+        assertThat(stock()).isEqualTo(5);
+        assertThat(fish(0).feedCount()).isZero();
+        assertThat(pellet(id).claimedBy()).isEqualTo(fish(1).id());
     }
 
     @Test
     void completeEatingWithEmptyStockReleasesThePellet() {
-        // Returns INSUFFICIENT_FOOD, feed count unchanged.
-        fail("TODO: write this test");
+        String id = dropPellet(500);
+        world.food().tryClaim(id, fish(0).id());
+        // Spend the whole stock behind the pellet's back.
+        TxResult drained = wallet.debit(Currency.FOOD, 5, "test", "test:drain", session.time().nowMillis());
+        assertThat(drained).isEqualTo(TxResult.OK);
+
+        EatResult result = food.completeEating(fish(0), id);
+
+        assertThat(result).isEqualTo(EatResult.INSUFFICIENT_FOOD);
+        assertThat(fish(0).feedCount()).isZero();
+        assertThat(pellet(id).state()).isEqualTo(PelletState.FREE);
+        assertThat(pellet(id).claimedBy()).isNull();
     }
 
     @Test
     void uneatenPelletDissolvesWithoutCost() {
-        fail("TODO: write this test");
+        dropPellet(500);
+
+        world.food().update(config.food().pelletLifetimeS() + 1);
+
+        assertThat(world.food().pellets()).isEmpty();
+        assertThat(stock()).isEqualTo(5);
     }
 
     @Test
     void threeFishAndOnePelletGiveExactlyOneEater() {
-        fail("TODO: write this test");
+        String id = dropPellet(500);
+
+        int claims = 0;
+        for (FishEntity fish : world.fish()) {
+            if (world.food().tryClaim(id, fish.id())) {
+                claims++;
+            }
+        }
+        assertThat(claims).isEqualTo(1);
+
+        // All three fish try to finish eating: only the owner of the claim is paid.
+        int paid = 0;
+        for (FishEntity fish : world.fish()) {
+            if (food.completeEating(fish, id) == EatResult.OK) {
+                paid++;
+            }
+        }
+        assertThat(paid).isEqualTo(1);
+        assertThat(stock()).isEqualTo(4);
+        assertThat(world.fish().stream().mapToInt(FishEntity::feedCount).sum()).isEqualTo(1);
     }
 
     @Test
     void completeEatingPublishesFishFed() {
-        fail("TODO: write this test");
+        List<FishFed> events = new ArrayList<>();
+        session.events().subscribe(FishFed.class, events::add);
+        String id = dropPellet(500);
+        world.food().tryClaim(id, fish(0).id());
+
+        food.completeEating(fish(0), id);
+
+        assertThat(events).containsExactly(new FishFed(fish(0).id(), 1));
     }
 }

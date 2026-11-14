@@ -2,8 +2,10 @@ package com.miniakvaryum.domain.feature.aquarium.api.food;
 
 import com.miniakvaryum.domain.core.util.Vec2;
 import com.miniakvaryum.domain.feature.aquarium.AquariumConfig;
+import com.miniakvaryum.domain.feature.aquarium.FoodConfig;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -13,11 +15,12 @@ import java.util.Optional;
  * only one fish: a fish must <b>claim</b> a pellet before it starts eating, and a claimed
  * pellet is invisible to all other fish.
  *
- * <p><b>SKELETON:</b> {@link #pellets()} and {@code add} work; the methods marked TODO must be
- * implemented (specification section 7.8). Tests: {@code FoodFieldTest}. Implement this class
- * before {@code FishBrain}, whose tests need it.
+ * <p>Tests: {@code FoodFieldTest}.
  */
 public final class FoodField {
+
+    /** Pellets stop sinking this far above the water floor. */
+    private static final double FLOOR_OFFSET = 10;
 
     private final AquariumConfig config;
     private final List<Pellet> pellets = new ArrayList<>();
@@ -41,59 +44,100 @@ public final class FoodField {
 
     /**
      * Returns the FREE pellet closest to {@code from}, or empty if there is none.
-     * Claimed pellets are never returned.
-     *
-     * <p>TODO.
+     * Claimed pellets are never returned. With two equally distant pellets the older one wins,
+     * so the result is deterministic.
      */
     public Optional<Pellet> nearestFree(Vec2 from) {
-        throw new UnsupportedOperationException("TODO: FoodField.nearestFree is not implemented yet");
+        Pellet nearest = null;
+        double nearestDistance = Double.MAX_VALUE;
+        for (Pellet pellet : pellets) {
+            if (pellet.state() != PelletState.FREE) {
+                continue;
+            }
+            double distance = pellet.position().distanceTo(from);
+            if (distance < nearestDistance) {
+                nearest = pellet;
+                nearestDistance = distance;
+            }
+        }
+        return Optional.ofNullable(nearest);
     }
 
     /**
-     * A fish tries to reserve a pellet for eating.
-     *
-     * <p>TODO: succeed only if the pellet exists and is FREE; then set it to CLAIMED by
-     * {@code fishId} with {@code claimAgeS = 0}.
+     * A fish tries to reserve a pellet for eating. Succeeds only if the pellet exists and is FREE.
      *
      * @return true if the pellet now belongs to this fish
      */
     public boolean tryClaim(String pelletId, String fishId) {
-        throw new UnsupportedOperationException("TODO: FoodField.tryClaim is not implemented yet");
+        Optional<Pellet> found = find(pelletId);
+        if (found.isEmpty() || found.get().state() != PelletState.FREE) {
+            return false;
+        }
+        Pellet pellet = found.get();
+        pellet.setState(PelletState.CLAIMED);
+        pellet.setClaimedBy(fishId);
+        pellet.setClaimAgeS(0);
+        return true;
     }
 
-    /**
-     * Gives a claimed pellet back.
-     *
-     * <p>TODO: only if the pellet is CLAIMED by exactly this fish, set it back to FREE;
-     * otherwise do nothing.
-     */
+    /** Gives a claimed pellet back, but only if it is CLAIMED by exactly this fish. */
     public void release(String pelletId, String fishId) {
-        throw new UnsupportedOperationException("TODO: FoodField.release is not implemented yet");
+        Optional<Pellet> found = find(pelletId);
+        if (found.isPresent()
+                && found.get().state() == PelletState.CLAIMED
+                && fishId != null
+                && fishId.equals(found.get().claimedBy())) {
+            makeFree(found.get());
+        }
     }
 
-    /**
-     * Takes a pellet out of the water (it was eaten). Unknown ids are ignored.
-     *
-     * <p>TODO.
-     */
+    /** Takes a pellet out of the water (it was eaten). Unknown ids are ignored. */
     public void remove(String pelletId) {
-        throw new UnsupportedOperationException("TODO: FoodField.remove is not implemented yet");
+        pellets.removeIf(pellet -> pellet.id().equals(pelletId));
     }
 
     /**
-     * Advances all pellets by one frame.
-     *
-     * <p>TODO, for every pellet:
-     * <ul>
-     *   <li>Sink: move down by {@code pelletSinkSpeed * dt}, but not below {@code waterFloor + 10}.</li>
-     *   <li>Age: add dt to {@code ageS}; add dt to {@code claimAgeS} while CLAIMED.</li>
-     *   <li>Dissolve: remove a FREE pellet older than {@code pelletLifetimeS}. This costs no food.</li>
-     *   <li>Claim timeout: a CLAIMED pellet whose {@code claimAgeS} exceeds {@code claimTimeoutS}
-     *       becomes FREE again.</li>
-     * </ul>
-     * Careful: do not remove from the list while iterating over it with a for-each loop.
+     * Advances all pellets by one frame: sink, age, dissolve (FREE pellets only, costs no food)
+     * and release claims that have timed out.
      */
     public void update(double dtSeconds) {
-        throw new UnsupportedOperationException("TODO: FoodField.update is not implemented yet");
+        FoodConfig food = config.food();
+        double floorY = config.world().waterFloor() + FLOOR_OFFSET;
+
+        Iterator<Pellet> iterator = pellets.iterator();
+        while (iterator.hasNext()) {
+            Pellet pellet = iterator.next();
+            sink(pellet, food.pelletSinkSpeed() * dtSeconds, floorY);
+            pellet.setAgeS(pellet.ageS() + dtSeconds);
+
+            if (pellet.state() == PelletState.CLAIMED) {
+                pellet.setClaimAgeS(pellet.claimAgeS() + dtSeconds);
+                if (pellet.claimAgeS() > food.claimTimeoutS()) {
+                    makeFree(pellet);
+                }
+            } else if (pellet.ageS() > food.pelletLifetimeS()) {
+                iterator.remove();
+            }
+        }
+    }
+
+    private static void sink(Pellet pellet, double distance, double floorY) {
+        double y = Math.max(floorY, pellet.position().y() - distance);
+        pellet.setPosition(new Vec2(pellet.position().x(), y));
+    }
+
+    private static void makeFree(Pellet pellet) {
+        pellet.setState(PelletState.FREE);
+        pellet.setClaimedBy(null);
+        pellet.setClaimAgeS(0);
+    }
+
+    private Optional<Pellet> find(String pelletId) {
+        for (Pellet pellet : pellets) {
+            if (pellet.id().equals(pelletId)) {
+                return Optional.of(pellet);
+            }
+        }
+        return Optional.empty();
     }
 }
