@@ -3,6 +3,7 @@ package com.miniakvaryum.domain.feature.aquarium.api.world;
 import com.miniakvaryum.domain.feature.aquarium.AquariumConfig;
 import com.miniakvaryum.domain.feature.aquarium.api.fish.FishBrain;
 import com.miniakvaryum.domain.feature.aquarium.api.fish.FishEntity;
+import com.miniakvaryum.domain.feature.aquarium.api.fish.FishEvent;
 import com.miniakvaryum.domain.feature.aquarium.api.food.FoodField;
 import com.miniakvaryum.domain.feature.aquarium.api.food.FoodService;
 import java.util.List;
@@ -13,8 +14,7 @@ import java.util.Optional;
  * The simulated aquarium: all fish and all pellets, advanced together once per frame.
  * The renderer reads {@link #fish()} and {@link #food()} every frame.
  *
- * <p><b>SKELETON:</b> the getters work; {@link #update} and {@link #dropPellet} must be
- * implemented (specification section 7.9). Tests: {@code AquariumWorldTest}.
+ * <p>Tests: {@code AquariumWorldTest}.
  */
 public final class AquariumWorld {
 
@@ -26,6 +26,9 @@ public final class AquariumWorld {
     private final FoodField food;
     private final FoodService foodService;
     private final FishBrain brain;
+
+    /** Counts frames; only used to rotate which fish is visited first. */
+    private long tickCounter;
 
     public AquariumWorld(AquariumConfig config, List<FishEntity> fish, FoodField food,
             FoodService foodService, FishBrain brain) {
@@ -52,36 +55,42 @@ public final class AquariumWorld {
     }
 
     /**
-     * Advances the aquarium by one frame.
+     * Advances the aquarium by one frame: pellets first, then every fish exactly once.
      *
-     * <p>TODO:
-     * <ol>
-     *   <li>{@code dt = min(dtSeconds, MAX_STEP_SECONDS)}.</li>
-     *   <li>Increment a tick counter (a new field).</li>
-     *   <li>{@code food.update(dt)}.</li>
-     *   <li>Visit every fish once, starting at index {@code tickCounter % fish.size()} and
-     *       wrapping around. The rotating start makes it fair: no fish always gets the first
-     *       chance at a pellet.</li>
-     *   <li>For each fish: remember its claimed pellet id, call {@code brain.update(fish, food, dt)};
-     *       on {@code FINISHED_EATING} call {@code foodService.completeEating(fish, pelletId)};
-     *       then {@code fish.addAquariumMillis(round(dt * 1000))}.</li>
-     * </ol>
-     *
-     * <p>Until it is implemented this method does nothing, so that the game can run with fish
-     * that stand still. It is called every frame and therefore must not throw.
+     * <p>Frames longer than {@link #MAX_STEP_SECONDS} are cut down. The fish are visited
+     * starting at a different index every frame, so that no fish always gets the first chance at
+     * a new pellet.
      */
     public void update(double dtSeconds) {
-        // TODO: implement the steps described above.
+        double dt = Math.min(dtSeconds, MAX_STEP_SECONDS);
+        tickCounter++;
+        food.update(dt);
+
+        int count = fish.size();
+        if (count == 0) {
+            return;
+        }
+        int start = (int) (tickCounter % count);
+        for (int i = 0; i < count; i++) {
+            advance(fish.get((start + i) % count), dt);
+        }
+    }
+
+    private void advance(FishEntity one, double dt) {
+        String claimedPelletId = one.state().claimedPelletId();
+        FishEvent event = brain.update(one, food, dt);
+        if (event == FishEvent.FINISHED_EATING) {
+            foodService.completeEating(one, claimedPelletId);
+        }
+        one.addAquariumMillis(Math.round(dt * 1000));
     }
 
     /**
      * The child drops a pellet at the given x.
      *
-     * <p>TODO: delegate to {@code foodService.drop(x)}.
-     *
      * @return the id of the new pellet, or empty if no food is available
      */
     public Optional<String> dropPellet(double x) {
-        throw new UnsupportedOperationException("TODO: AquariumWorld.dropPellet is not implemented yet");
+        return foodService.drop(x);
     }
 }

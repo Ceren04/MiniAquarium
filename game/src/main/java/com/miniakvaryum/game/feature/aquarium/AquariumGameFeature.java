@@ -48,7 +48,7 @@ public final class AquariumGameFeature implements GameFeature {
                 return false;
             }
             if (world.dropPellet(x).isEmpty()) {
-                ui.main().showMessage(AquariumStrings.NO_FOOD_FREE, NO_FOOD_MESSAGE_SECONDS);
+                  ui.main().showMessage(refusedDropMessage(world), NO_FOOD_MESSAGE_SECONDS);
             }
             return true;
         });
@@ -60,5 +60,12 @@ public final class AquariumGameFeature implements GameFeature {
         Image image = new Image(ui.skin().newDrawable(UiSkin.WHITE, color));
         image.setBounds(x, y, width, height);
         return image;
+    }
+
+    /** Out of food, or all of it already lying in the water? */
+    private static String refusedDropMessage(AquariumWorld world) {
+        return world.food().pellets().isEmpty()
+            ? AquariumStrings.NO_FOOD_FREE
+            : AquariumStrings.FOOD_IN_THE_WATER;
     }
 }

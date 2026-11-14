@@ -1,34 +1,41 @@
 package com.miniakvaryum.game.feature.aquarium;
 
-import static org.assertj.core.api.Assertions.fail;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.within;
 
-import org.junit.jupiter.api.Disabled;
+import com.miniakvaryum.domain.feature.aquarium.api.fish.ActionType;
 import org.junit.jupiter.api.Test;
 
-/**
- * Tests for the animation math (specification section 8.4). They need no window.
- *
- * <p>How to work here: remove the {@code @Disabled} line of the class, then replace each
- * {@code fail(...)} with a real test.
- */
-@Disabled("TODO: enable when FishAnimationMath is implemented")
+/** Tests for the animation math (specification section 10.4). They need no window. */
 class FishAnimationMathTest {
+
+    private static final float TOLERANCE = 0.001f;
 
     @Test
     void everyActionHasItsSwimFrequency() {
-        // IDLE 0.8, SLOW_MOVE 1.5, DASH 3.0, EAT 1.0.
-        fail("TODO: write this test");
+        assertThat(FishAnimationMath.swimFrequencyHz(ActionType.IDLE)).isEqualTo(0.8f);
+        assertThat(FishAnimationMath.swimFrequencyHz(ActionType.SLOW_MOVE)).isEqualTo(1.5f);
+        assertThat(FishAnimationMath.swimFrequencyHz(ActionType.DASH)).isEqualTo(3.0f);
+        assertThat(FishAnimationMath.swimFrequencyHz(ActionType.EAT)).isEqualTo(1.0f);
     }
 
     @Test
     void tailSwingsBetweenMinusAndPlusTwentyTwoDegrees() {
-        // At t = 0 the angle is 0; a quarter period later it is +22; three quarters later -22.
-        fail("TODO: write this test");
+        // At 1 Hz one period lasts one second.
+        assertThat(FishAnimationMath.tailAngleDeg(1f, 0f)).isCloseTo(0f, within(TOLERANCE));
+        assertThat(FishAnimationMath.tailAngleDeg(1f, 0.25f)).isCloseTo(22f, within(TOLERANCE));
+        assertThat(FishAnimationMath.tailAngleDeg(1f, 0.5f)).isCloseTo(0f, within(TOLERANCE));
+        assertThat(FishAnimationMath.tailAngleDeg(1f, 0.75f)).isCloseTo(-22f, within(TOLERANCE));
     }
 
     @Test
     void finSwingsBetweenMinusAndPlusTwelveDegreesAQuarterPeriodAhead() {
-        // At t = 0 the fin is at +12 (phase shift of PI / 2).
-        fail("TODO: write this test");
+        assertThat(FishAnimationMath.finAngleDeg(1f, 0f)).isCloseTo(12f, within(TOLERANCE));
+        assertThat(FishAnimationMath.finAngleDeg(1f, 0.25f)).isCloseTo(0f, within(TOLERANCE));
+        assertThat(FishAnimationMath.finAngleDeg(1f, 0.5f)).isCloseTo(-12f, within(TOLERANCE));
+
+        // "A quarter period ahead": when the tail is at its middle position, the fin is at its maximum.
+        assertThat(FishAnimationMath.tailAngleDeg(1f, 0f)).isCloseTo(0f, within(TOLERANCE));
+        assertThat(FishAnimationMath.finAngleDeg(1f, 0f)).isCloseTo(12f, within(TOLERANCE));
     }
 }

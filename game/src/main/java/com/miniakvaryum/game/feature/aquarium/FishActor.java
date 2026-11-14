@@ -14,35 +14,48 @@ import com.miniakvaryum.domain.feature.aquarium.api.fish.FishEntity;
  * {@code setScaleX(facing)} mirrors the whole group around its origin, and no offset has to be
  * recalculated.
  *
- * <p><b>SKELETON:</b> body and head are drawn and follow the fish. To implement
- * (specification section 8.4):
- * <ul>
- *   <li>Add the missing parts. Order of {@code addActor} calls is the drawing order, back to
- *       front: tail, body, fin, head.</li>
- *   <li>Offsets of the part centers from the body center, and pivots inside the part:
- *       <pre>
- *   part   size       offset      pivot (origin of rotation)
- *   tail   48 x 56    (-62, 0)    front edge center (48, 28)
- *   body   120 x 64   (0, 0)      center
- *   fin    36 x 24    (-6, 34)    base center (18, 0)
- *   head   44 x 44    (52, 0)     center
- *       </pre>
- *       Set the pivot with {@code image.setOrigin(x, y)} and rotate with
- *       {@code image.setRotation(degrees)}.</li>
- *   <li>Animate in {@link #act}: keep a running time {@code t += delta} per actor and use
- *       {@link FishAnimationMath} for the tail and fin angles, with the frequency of the
- *       fish's current action.</li>
- * </ul>
+ * <p>The fish has four parts, added back to front: tail, body, fin, head. Tail and fin swing
+ * around a pivot; the swing speed depends on the fish's current action.
  */
 final class FishActor extends Group {
 
+    // Offset of each part's center from the body center (fish facing right), in world units.
+    private static final float TAIL_OFFSET_X = -62f;
+    private static final float TAIL_OFFSET_Y = 0f;
+    private static final float FIN_OFFSET_X = -6f;
+    private static final float FIN_OFFSET_Y = 34f;
+    private static final float HEAD_OFFSET_X = 52f;
+    private static final float HEAD_OFFSET_Y = 0f;
+
+    // Pivot (origin of rotation) inside the part, measured from the part's lower-left corner.
+    private static final float TAIL_PIVOT_X = 48f; // front edge, where the tail joins the body
+    private static final float TAIL_PIVOT_Y = 28f;
+    private static final float FIN_PIVOT_X = 18f; // base of the fin
+    private static final float FIN_PIVOT_Y = 0f;
+
     private final FishEntity fish;
+    private final Image tail;
+    private final Image fin;
+
+    /** Running time of this actor's animation in seconds. */
+    private float animationTime;
 
     FishActor(FishEntity fish, AquariumTextures textures) {
         this.fish = fish;
 
-        addCentered(new Image(textures.body), 0, 0);
-        addCentered(new Image(textures.head), 52, 0);
+        tail = new Image(textures.tail);
+        Image body = new Image(textures.body);
+        fin = new Image(textures.fin);
+        Image head = new Image(textures.head);
+
+        // Order of addActor is the drawing order, back to front.
+        addCentered(tail, TAIL_OFFSET_X, TAIL_OFFSET_Y);
+        addCentered(body, 0, 0);
+        addCentered(fin, FIN_OFFSET_X, FIN_OFFSET_Y);
+        addCentered(head, HEAD_OFFSET_X, HEAD_OFFSET_Y);
+
+        tail.setOrigin(TAIL_PIVOT_X, TAIL_PIVOT_Y);
+        fin.setOrigin(FIN_PIVOT_X, FIN_PIVOT_Y);
 
         syncWithDomain();
     }
@@ -57,6 +70,7 @@ final class FishActor extends Group {
     public void act(float delta) {
         super.act(delta);
         syncWithDomain();
+        animate(delta);
     }
 
     private void syncWithDomain() {
@@ -64,5 +78,12 @@ final class FishActor extends Group {
         setPosition((float) position.x(), (float) position.y());
         // +1 or -1: mirrors the group around its origin (the body center).
         setScaleX(fish.state().facing());
+    }
+
+    private void animate(float delta) {
+        animationTime += delta;
+        float frequencyHz = FishAnimationMath.swimFrequencyHz(fish.state().action());
+        tail.setRotation(FishAnimationMath.tailAngleDeg(frequencyHz, animationTime));
+        fin.setRotation(FishAnimationMath.finAngleDeg(frequencyHz, animationTime));
     }
 }

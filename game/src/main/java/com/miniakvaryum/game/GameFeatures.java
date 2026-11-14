@@ -2,6 +2,7 @@ package com.miniakvaryum.game;
 
 import com.miniakvaryum.game.core.GameFeature;
 import com.miniakvaryum.game.feature.aquarium.AquariumGameFeature;
+import com.miniakvaryum.game.feature.devtools.DevToolsGameFeature;
 import com.miniakvaryum.game.feature.economy.EconomyGameFeature;
 import com.miniakvaryum.game.feature.security.SecurityGameFeature;
 import com.miniakvaryum.game.feature.tasks.TasksGameFeature;
@@ -24,10 +25,12 @@ public final class GameFeatures {
     public static List<GameFeature> all() {
         return List.of(
                 new EconomyGameFeature(),
+                new DevToolsGameFeature(),
                 new AquariumGameFeature(),
                 new TasksGameFeature(),
                 // After a correct PIN the gate opens the parent area of the tasks feature.
                 new SecurityGameFeature(TasksGameFeature.SCREEN_PARENT_AREA)
+                
         );
     }
 }
