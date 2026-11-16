@@ -3,6 +3,8 @@ package com.miniakvaryum.domain.feature.tasks.api;
 import com.miniakvaryum.domain.core.events.EventBus;
 import com.miniakvaryum.domain.core.time.GameTime;
 import com.miniakvaryum.domain.core.util.IdGenerator;
+import com.miniakvaryum.domain.feature.economy.api.Currency;
+import com.miniakvaryum.domain.feature.economy.api.TxResult;
 import com.miniakvaryum.domain.feature.economy.api.Wallet;
 import com.miniakvaryum.domain.feature.security.api.ParentSession;
 import com.miniakvaryum.domain.feature.tasks.TasksConfig;
@@ -13,10 +15,9 @@ import java.util.Objects;
 /**
  * Creates tasks, moves them through their life cycle and pays the reward exactly once.
  *
- * <p><b>SKELETON:</b> the constructor and the two {@code list} methods work; the methods marked
- * TODO must be implemented (specification section 7.6). Tests: {@code TaskServiceTest}.
+ * <p>Specification section 9.3. Tests: {@code TaskServiceTest}.
  *
- * <p>Rules for the implementation:
+ * <p>Rules:
  * <ul>
  *   <li><b>Parent-only</b> methods call {@code parent.requireUnlocked()} as their first line.</li>
  *   <li><b>Validation</b> (create, update): the title is trimmed and must then have 1 to
@@ -31,6 +32,8 @@ import java.util.Objects;
  * </ul>
  */
 public final class TaskService {
+
+    private static final String REWARD_REASON = "task";
 
     private final List<Task> tasks;
     private final Wallet wallet;
@@ -66,47 +69,77 @@ public final class TaskService {
     /**
      * Parent only. Creates a new ACTIVE task.
      *
-     * <p>TODO: guard, validate, create with {@code ids.next()}, add, {@code onChange}.
+     * <p>Guard, validate, create with {@code ids.next()}, add, {@code onChange}.
      *
      * @return the created task
+     * @throws IllegalArgumentException if the title or a reward is invalid
      */
     public Task create(String title, int coins, int food) {
-        throw new UnsupportedOperationException("TODO: TaskService.create is not implemented yet");
+        parent.requireUnlocked();
+        String cleanTitle = validTitle(title);
+        validateRewards(coins, food);
+        Task task = new Task(ids.next(), cleanTitle, coins, food, TaskStatus.ACTIVE);
+        tasks.add(task);
+        onChange.run();
+        return task;
     }
 
     /**
      * Parent only. Changes title and rewards of an ACTIVE task.
      *
-     * <p>TODO: guard, find, check ACTIVE, validate, replace, {@code onChange}.
+     * <p>Guard, find, check ACTIVE, validate, replace, {@code onChange}.
      *
      * @return the updated task
+     * @throws IllegalArgumentException if the id is unknown or the title or a reward is invalid
+     * @throws IllegalStateException    if the task is not ACTIVE
      */
     public Task update(String id, String title, int coins, int food) {
-        throw new UnsupportedOperationException("TODO: TaskService.update is not implemented yet");
+        parent.requireUnlocked();
+        int index = indexOf(id);
+        requireStatus(tasks.get(index), TaskStatus.ACTIVE, "update");
+        String cleanTitle = validTitle(title);
+        validateRewards(coins, food);
+        Task updated = new Task(id, cleanTitle, coins, food, TaskStatus.ACTIVE);
+        tasks.set(index, updated);
+        onChange.run();
+        return updated;
     }
 
     /**
      * Parent only. Removes an ACTIVE task.
      *
-     * <p>TODO: guard, find, check ACTIVE, remove, {@code onChange}.
+     * <p>Guard, find, check ACTIVE, remove, {@code onChange}.
+     *
+     * @throws IllegalArgumentException if the id is unknown
+     * @throws IllegalStateException    if the task is not ACTIVE
      */
     public void delete(String id) {
-        throw new UnsupportedOperationException("TODO: TaskService.delete is not implemented yet");
+        parent.requireUnlocked();
+        int index = indexOf(id);
+        requireStatus(tasks.get(index), TaskStatus.ACTIVE, "delete");
+        tasks.remove(index);
+        onChange.run();
     }
 
     /**
      * Child. Reports a task as done: ACTIVE becomes PENDING. No reward is paid yet.
      *
-     * <p>TODO: find, check ACTIVE, replace, {@code onChange}. No parent guard here.
+     * <p>Find, check ACTIVE, replace, {@code onChange}. No parent guard here.
+     *
+     * @throws IllegalArgumentException if the id is unknown
+     * @throws IllegalStateException    if the task is not ACTIVE
      */
     public void reportDone(String id) {
-        throw new UnsupportedOperationException("TODO: TaskService.reportDone is not implemented yet");
+        int index = indexOf(id);
+        Task task = tasks.get(index);
+        requireStatus(task, TaskStatus.ACTIVE, "report as done");
+        tasks.set(index, task.withStatus(TaskStatus.PENDING));
+        onChange.run();
     }
 
     /**
      * Parent only. Confirms a PENDING task and pays its reward.
      *
-     * <p>TODO:
      * <ol>
      *   <li>Guard, find. APPROVED: return {@link ApprovalResult#ALREADY_APPROVED}. ACTIVE: throw
      *       {@link IllegalStateException}.</li>
@@ -119,16 +152,38 @@ public final class TaskService {
      * </ol>
      */
     public ApprovalResult approve(String id) {
-        throw new UnsupportedOperationException("TODO: TaskService.approve is not implemented yet");
+        parent.requireUnlocked();
+        int index = indexOf(id);
+        Task task = tasks.get(index);
+        if (task.status() == TaskStatus.APPROVED) {
+            return ApprovalResult.ALREADY_APPROVED;
+        }
+        requireStatus(task, TaskStatus.PENDING, "approve");
+        long now = time.nowMillis();
+        pay(Currency.COIN, task.coinReward(), "task:" + id + ":coin", now);
+        pay(Currency.FOOD, task.foodReward(), "task:" + id + ":food", now);
+        Task approved = task.withStatus(TaskStatus.APPROVED);
+        tasks.set(index, approved);
+        events.publish(new TaskApproved(approved));
+        onChange.run();
+        return ApprovalResult.APPROVED;
     }
 
     /**
      * Parent only. Sends a PENDING task back to ACTIVE; no reward.
      *
-     * <p>TODO: guard, find, check PENDING, replace, {@code onChange}.
+     * <p>Guard, find, check PENDING, replace, {@code onChange}.
+     *
+     * @throws IllegalArgumentException if the id is unknown
+     * @throws IllegalStateException    if the task is not PENDING
      */
     public void reject(String id) {
-        throw new UnsupportedOperationException("TODO: TaskService.reject is not implemented yet");
+        parent.requireUnlocked();
+        int index = indexOf(id);
+        Task task = tasks.get(index);
+        requireStatus(task, TaskStatus.PENDING, "reject");
+        tasks.set(index, task.withStatus(TaskStatus.ACTIVE));
+        onChange.run();
     }
 
     /** Returns all tasks in creation order. The list is a copy. */
@@ -140,5 +195,49 @@ public final class TaskService {
     public List<Task> list(TaskStatus status) {
         Objects.requireNonNull(status, "status");
         return tasks.stream().filter(task -> task.status() == status).toList();
+    }
+
+    // ------------------------------------------------------------ helpers
+
+    /** Credits one reward; 0 is skipped. A refId that was already used counts as paid. */
+    private void pay(Currency currency, int amount, String refId, long now) {
+        if (amount == 0) {
+            return;
+        }
+        TxResult result = wallet.credit(currency, amount, REWARD_REASON, refId, now);
+        if (result != TxResult.OK && result != TxResult.ALREADY_APPLIED) {
+            throw new IllegalStateException("Reward " + refId + " could not be paid: " + result);
+        }
+    }
+
+    private int indexOf(String id) {
+        for (int i = 0; i < tasks.size(); i++) {
+            if (tasks.get(i).id().equals(id)) {
+                return i;
+            }
+        }
+        throw new IllegalArgumentException("Unknown task id: " + id);
+    }
+
+    private static void requireStatus(Task task, TaskStatus expected, String action) {
+        if (task.status() != expected) {
+            throw new IllegalStateException("Cannot " + action + " task " + task.id() + " in status "
+                    + task.status() + "; it must be " + expected);
+        }
+    }
+
+    private String validTitle(String title) {
+        String trimmed = title == null ? "" : title.trim();
+        if (trimmed.isEmpty() || trimmed.length() > config.titleMaxLength()) {
+            throw new IllegalArgumentException("The title must have 1 to " + config.titleMaxLength()
+                    + " characters");
+        }
+        return trimmed;
+    }
+
+    private void validateRewards(int coins, int food) {
+        if (coins < 0 || coins > config.rewardMax() || food < 0 || food > config.rewardMax()) {
+            throw new IllegalArgumentException("Rewards must be between 0 and " + config.rewardMax());
+        }
     }
 }

@@ -67,9 +67,9 @@ domain/.../domain/
     session/  GameSession, GameSessionFactory
   feature/
     economy/   Wallet (coins, food) as a ledger          COMPLETE - the reference example
-    security/  parent PIN, ParentSession                 skeleton
-    tasks/     TaskService                               skeleton
-    aquarium/  fish, food pellets, world simulation      skeleton
+    security/  parent PIN, ParentSession                 complete
+    tasks/     TaskService                               complete
+    aquarium/  fish, food pellets, world simulation      complete except LevelRules
   DomainFeatures.java          the list of features: one line each
 
 game/.../game/
@@ -77,9 +77,9 @@ game/.../game/
     ui/        MainScreen (empty frame), Navigator, BaseScreen, UiSkin, ShapeTextures
   feature/
     economy/   coin and food display                     complete
-    aquarium/  water, sand, fish, pellets, feed mode     fish drawing is a skeleton
-    security/  PIN gate screen                           skeleton
-    tasks/     child task list, parent area              skeleton
+    aquarium/  water, sand, fish, pellets, feed mode     complete
+    security/  PIN gate screen                           complete
+    tasks/     child task list, parent area              complete
   GameFeatures.java            the list of UI features: one line each
 ```
 
@@ -133,8 +133,10 @@ feature/tasks/
 ## Current state
 
 The base is complete: the game starts, shows the aquarium with three fish, saves and loads,
-and all four features are installed. What is still to be written is marked `TODO` in the code
-and listed with owners-to-be in [docs/WORK_PACKAGES.md](docs/WORK_PACKAGES.md). Calling
+and all four features are installed. Packages 1 (parent PIN), 2 (tasks), 3 (food rules) and
+5 (world and fish drawing) are written. Still open: `LevelRules.levelOf` (package 4) and the
+food display "stock (free)" (package 3, `EconomyGameFeature`). What is still to be written is
+marked `TODO` in the code and listed in [docs/WORK_PACKAGES.md](docs/WORK_PACKAGES.md). Calling
 unfinished code from the UI shows "Not implemented yet" instead of crashing.
 
 - The full specification of the project as built (version 2.0): [docs/SPECIFICATION.md](docs/SPECIFICATION.md)
