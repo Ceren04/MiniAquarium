@@ -2,16 +2,23 @@ package com.miniakvaryum.domain.feature.security.api;
 
 import com.miniakvaryum.domain.core.time.GameTime;
 import com.miniakvaryum.domain.feature.security.SecurityConfig;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.security.spec.InvalidKeySpecException;
+import java.util.Base64;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import javax.crypto.SecretKeyFactory;
+import javax.crypto.spec.PBEKeySpec;
 
 /**
  * Sets and checks the parent PIN, including the lockout after too many wrong attempts.
  *
- * <p><b>SKELETON:</b> the constructor and the simple getters work; the methods marked TODO
- * must be implemented (specification section 7.5). Tests: {@code PinServiceTest}.
+ * <p>Specification section 9.2. Tests: {@code PinServiceTest}.
  *
- * <p>Rules for the implementation:
+ * <p>Rules:
  * <ul>
  *   <li>A PIN is exactly {@code pinLength} digits ({@code [0-9]}); anything else throws
  *       {@link IllegalArgumentException}.</li>
@@ -25,6 +32,12 @@ import java.util.Optional;
  */
 public final class PinService {
 
+    private static final String HASH_ALGORITHM = "PBKDF2WithHmacSHA256";
+    private static final int SALT_BYTES = 16;
+    private static final int KEY_BITS = 256;
+    private static final long MILLIS_PER_SECOND = 1_000L;
+
+    private final SecureRandom secureRandom = new SecureRandom();
     private final GameTime time;
     private final SecurityConfig config;
     private final Runnable onChange;
@@ -63,21 +76,31 @@ public final class PinService {
     /**
      * Sets the PIN for the first time.
      *
-     * <p>TODO: validate the format, create a random salt, hash the PIN, store a new
-     * {@link PinState} with all counters at 0, call {@code onChange}.
+     * <p>Validates the format, creates a random salt, hashes the PIN, stores a new
+     * {@link PinState} with all counters at 0 and calls {@code onChange}.
      *
      * @throws IllegalArgumentException if the PIN is not exactly {@code pinLength} digits
      * @throws IllegalStateException    if a PIN is already set (changing the PIN is not part of
      *                                  this milestone)
      */
     public void setPin(String pin) {
-        throw new UnsupportedOperationException("TODO: PinService.setPin is not implemented yet");
+        requireValidFormat(pin);
+        if (state != null) {
+            throw new IllegalStateException("A PIN is already set; changing it is not supported");
+        }
+        byte[] salt = new byte[SALT_BYTES];
+        secureRandom.nextBytes(salt);
+        int iterations = config.pbkdf2Iterations();
+        byte[] hash = hash(pin, salt, iterations);
+        Base64.Encoder base64 = Base64.getEncoder();
+        state = new PinState(base64.encodeToString(salt), base64.encodeToString(hash), iterations, 0, 0, 0L);
+        onChange.run();
     }
 
     /**
      * Checks a PIN.
      *
-     * <p>TODO, in this order:
+     * <p>In this order:
      * <ol>
      *   <li>No PIN set: return {@link VerifyStatus#NOT_SET}.</li>
      *   <li>Locked ({@code now < lockedUntilGameMillis}): return {@link VerifyStatus#LOCKED} with
@@ -94,6 +117,76 @@ public final class PinService {
      * @throws IllegalArgumentException if the PIN is not exactly {@code pinLength} digits
      */
     public VerifyResult verify(String pin) {
-        throw new UnsupportedOperationException("TODO: PinService.verify is not implemented yet");
+        requireValidFormat(pin);
+        if (state == null) {
+            return new VerifyResult(VerifyStatus.NOT_SET, config.pinMaxAttempts(), 0L);
+        }
+        long now = time.nowMillis();
+        if (now < state.lockedUntilGameMillis()) {
+            return new VerifyResult(VerifyStatus.LOCKED, 0, state.lockedUntilGameMillis() - now);
+        }
+        if (matches(pin)) {
+            if (state.failedAttempts() != 0 || state.lockoutStage() != 0) {
+                state = new PinState(state.saltB64(), state.hashB64(), state.iterations(),
+                        0, 0, state.lockedUntilGameMillis());
+                onChange.run();
+            }
+            return new VerifyResult(VerifyStatus.OK, config.pinMaxAttempts(), 0L);
+        }
+        return registerWrongAttempt(now);
+    }
+
+    /** Counts one wrong PIN and starts a lockout when the attempts are used up. */
+    private VerifyResult registerWrongAttempt(long now) {
+        int failed = state.failedAttempts() + 1;
+        if (failed >= config.pinMaxAttempts()) {
+            List<Integer> durations = config.lockoutSeconds();
+            int index = Math.min(state.lockoutStage(), durations.size() - 1);
+            long lockMillis = durations.get(index) * MILLIS_PER_SECOND;
+            state = new PinState(state.saltB64(), state.hashB64(), state.iterations(),
+                    0, state.lockoutStage() + 1, now + lockMillis);
+            onChange.run();
+            return new VerifyResult(VerifyStatus.LOCKED, 0, lockMillis);
+        }
+        state = new PinState(state.saltB64(), state.hashB64(), state.iterations(),
+                failed, state.lockoutStage(), state.lockedUntilGameMillis());
+        onChange.run();
+        return new VerifyResult(VerifyStatus.WRONG, config.pinMaxAttempts() - failed, 0L);
+    }
+
+    /** Hashes the candidate with the stored salt and iteration count and compares in constant time. */
+    private boolean matches(String pin) {
+        Base64.Decoder base64 = Base64.getDecoder();
+        byte[] salt = base64.decode(state.saltB64());
+        byte[] expected = base64.decode(state.hashB64());
+        return MessageDigest.isEqual(expected, hash(pin, salt, state.iterations()));
+    }
+
+    /**
+     * Checks that the PIN is exactly {@code pinLength} ASCII digits. The message never contains
+     * the PIN itself.
+     */
+    private void requireValidFormat(String pin) {
+        if (pin == null || pin.length() != config.pinLength()) {
+            throw new IllegalArgumentException("A PIN must be exactly " + config.pinLength() + " digits");
+        }
+        for (int i = 0; i < pin.length(); i++) {
+            char c = pin.charAt(i);
+            if (c < '0' || c > '9') {
+                throw new IllegalArgumentException("A PIN must be exactly " + config.pinLength() + " digits");
+            }
+        }
+    }
+
+    private static byte[] hash(String pin, byte[] salt, int iterations) {
+        PBEKeySpec spec = new PBEKeySpec(pin.toCharArray(), salt, iterations, KEY_BITS);
+        try {
+            return SecretKeyFactory.getInstance(HASH_ALGORITHM).generateSecret(spec).getEncoded();
+        } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
+            // Every Java 17 runtime ships PBKDF2WithHmacSHA256; reaching this is a broken JDK.
+            throw new IllegalStateException(HASH_ALGORITHM + " is not available", e);
+        } finally {
+            spec.clearPassword();
+        }
     }
 }
