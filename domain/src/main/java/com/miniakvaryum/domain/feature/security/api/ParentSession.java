@@ -9,8 +9,7 @@ import java.util.Objects;
  * <p>The unlocked flag is runtime state: it is never saved, so every start of the game begins
  * locked.
  *
- * <p><b>SKELETON:</b> {@link #unlock} must be implemented (specification section 7.5).
- * Tests: {@code ParentSessionTest}.
+ * <p>Specification section 9.2. Tests: {@code ParentSessionTest}.
  */
 public final class ParentSession {
 
@@ -24,11 +23,15 @@ public final class ParentSession {
     /**
      * Tries to open the parent area with the given PIN.
      *
-     * <p>TODO: call {@code pins.verify(pin)}; the area is unlocked exactly when the status is
-     * {@link VerifyStatus#OK}. Return the result unchanged so the UI can show its message.
+     * <p>Calls {@code pins.verify(pin)}; the area is unlocked exactly when the status is
+     * {@link VerifyStatus#OK}. The result is returned unchanged so the UI can show its message.
+     *
+     * @throws IllegalArgumentException if the PIN is not exactly {@code pinLength} digits
      */
     public VerifyResult unlock(String pin) {
-        throw new UnsupportedOperationException("TODO: ParentSession.unlock is not implemented yet");
+        VerifyResult result = pins.verify(pin);
+        unlocked = result.status() == VerifyStatus.OK;
+        return result;
     }
 
     /** Returns true while the parent area is open. */

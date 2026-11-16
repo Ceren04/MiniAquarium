@@ -19,6 +19,26 @@ final class TasksStrings {
     static final String TITLE_FIELD = "Title";
     static final String COINS_FIELD = "Coins";
     static final String FOOD_FIELD = "Food";
+    static final String SAVE_CHANGES = "Save changes";
+    static final String CANCEL = "Cancel";
+    static final String NEW_TASK = "New task";
+    static final String EDIT_TASK = "Edit task";
+    static final String ALL_TASKS = "All tasks";
+    static final String NO_TASKS = "No tasks yet";
+    /** Use with String.format: coins, food. */
+    static final String REWARD = "%d coins, %d food";
+    static final String STATUS_ACTIVE = "Open";
+    static final String STATUS_PENDING = "Done? Check it";
+    static final String STATUS_APPROVED = "Approved";
+    static final String TASK_CREATED = "Task created";
+    static final String TASK_SAVED = "Task saved";
+    /** Use with String.format: coins, food. */
+    static final String APPROVED_MESSAGE = "Approved: +%d coins, +%d food";
+    static final String ALREADY_APPROVED = "This task was already approved";
+    /** Use with String.format: longest title, highest reward. */
+    static final String INVALID_TASK = "Title 1 to %d characters, rewards 0 to %d";
+    static final String NOT_POSSIBLE = "This is not possible for this task any more";
+    static final String LOCKED = "The parent area is locked";
 
     private TasksStrings() {
     }

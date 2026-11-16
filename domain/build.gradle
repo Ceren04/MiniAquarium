@@ -25,6 +25,8 @@ dependencies {
 def coverageGatedPackages = [
         'com/miniakvaryum/domain/core/**',
         'com/miniakvaryum/domain/feature/economy/**',
+        'com/miniakvaryum/domain/feature/security/**',
+        'com/miniakvaryum/domain/feature/tasks/**',
 ]
 
 tasks.named('test') {
