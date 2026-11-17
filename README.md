@@ -70,6 +70,7 @@ domain/.../domain/
     security/  parent PIN, ParentSession                 complete
     tasks/     TaskService                               complete
     aquarium/  fish, food pellets, world simulation      complete except LevelRules
+    dirt/      dirt spots on the glass, wiping           complete
   DomainFeatures.java          the list of features: one line each
 
 game/.../game/
@@ -78,6 +79,7 @@ game/.../game/
   feature/
     economy/   coin and food display                     complete
     aquarium/  water, sand, fish, pellets, feed mode     complete
+    dirt/      dirt spots, tap and rub to clean          complete
     security/  PIN gate screen                           complete
     tasks/     child task list, parent area              complete
   GameFeatures.java            the list of UI features: one line each

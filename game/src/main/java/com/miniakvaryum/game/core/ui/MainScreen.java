@@ -27,6 +27,8 @@ import java.util.function.Supplier;
 public final class MainScreen extends BaseScreen implements MainLayout {
 
     private static final float BAR_HEIGHT = 80f;
+    /** Touch screens report at most this many fingers at once (libGDX pointer indices). */
+    private static final int MAX_FINGERS = 20;
     private static final Color BAR_COLOR = new Color(0f, 0.10f, 0.20f, 0.75f);
 
     private record Layer(int z, Actor actor) {
@@ -41,6 +43,9 @@ public final class MainScreen extends BaseScreen implements MainLayout {
     private final Table buttonCells = new Table();
     private final List<Status> statuses = new ArrayList<>();
     private final List<WorldTapHandler> tapHandlers = new ArrayList<>();
+    private final List<WorldDragHandler> dragHandlers = new ArrayList<>();
+    private final float[] lastFingerX = new float[MAX_FINGERS];
+    private final float[] lastFingerY = new float[MAX_FINGERS];
     private final List<Supplier<String>> debugLines = new ArrayList<>();
     private final Label debug;
 
@@ -61,8 +66,20 @@ public final class MainScreen extends BaseScreen implements MainLayout {
         tapArea.addListener(new InputListener() {
             @Override
             public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
+                rememberFinger(pointer, x, y);
                 guarded(() -> dispatchTap(x, y));
                 return true;
+            }
+
+            @Override
+            public void touchDragged(InputEvent event, float x, float y, int pointer) {
+                if (pointer < 0 || pointer >= MAX_FINGERS) {
+                    return;
+                }
+                float fromX = lastFingerX[pointer];
+                float fromY = lastFingerY[pointer];
+                rememberFinger(pointer, x, y);
+                guarded(() -> dispatchDrag(fromX, fromY, x, y));
             }
         });
         stage.addActor(tapArea);
@@ -103,6 +120,21 @@ public final class MainScreen extends BaseScreen implements MainLayout {
             CreditedGap gap = session.creditedGap();
             return "Credited gap: " + gap.millis() + " ms, source " + gap.source() + ", capped " + gap.capped();
         });
+    }
+
+    private void rememberFinger(int pointer, float x, float y) {
+        if (pointer >= 0 && pointer < MAX_FINGERS) {
+            lastFingerX[pointer] = x;
+            lastFingerY[pointer] = y;
+        }
+    }
+
+    private void dispatchDrag(float fromX, float fromY, float toX, float toY) {
+        for (WorldDragHandler handler : dragHandlers) {
+            if (handler.onDrag(fromX, fromY, toX, toY)) {
+                return;
+            }
+        }
     }
 
     private void dispatchTap(float x, float y) {
@@ -170,6 +202,11 @@ public final class MainScreen extends BaseScreen implements MainLayout {
     @Override
     public void addWorldTapHandler(WorldTapHandler handler) {
         tapHandlers.add(handler);
+    }
+
+    @Override
+    public void addWorldDragHandler(WorldDragHandler handler) {
+        dragHandlers.add(handler);
     }
 
     @Override

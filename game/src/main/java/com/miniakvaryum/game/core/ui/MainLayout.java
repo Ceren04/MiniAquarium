@@ -14,8 +14,8 @@ import java.util.function.Supplier;
  *  | status  status            [toggle] [button] [button]         |  top bar
  *  +--------------------------------------------------------------+
  *  |                                                              |
- *  |                    world layers (by z)                       |  taps go to the
- *  |                                                              |  WorldTapHandlers
+ *  |                    world layers (by z)                       |  taps and drags go to
+ *  |                                                              |  the World...Handlers
  *  +--------------------------------------------------------------+
  * </pre>
  */
@@ -56,6 +56,13 @@ public interface MainLayout {
      * until one returns true.
      */
     void addWorldTapHandler(WorldTapHandler handler);
+
+    /**
+     * Registers a handler for finger movements over the aquarium. Handlers are asked in
+     * registration order until one returns true. A drag always starts with a tap, which goes to
+     * the {@link WorldTapHandler}s first.
+     */
+    void addWorldDragHandler(WorldDragHandler handler);
 
     /** Adds a line to the F3 debug overlay. */
     void addDebugLine(Supplier<String> line);
