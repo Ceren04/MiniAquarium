@@ -103,7 +103,9 @@ final class ParentScreen extends BaseScreen {
         field.setMessageText(hint);
         if (digitsOnly) {
             field.setTextFieldFilter(new TextField.TextFieldFilter.DigitsOnlyFilter());
-            field.setMaxLength(String.valueOf(LIMITS.rewardMax()).length());
+            // One digit more than the highest reward: a too large value can be typed and is then
+            // refused with a message, instead of the extra digit being dropped without a word.
+            field.setMaxLength(String.valueOf(LIMITS.rewardMax()).length() + 1);
         }
         return field;
     }
@@ -257,7 +259,7 @@ final class ParentScreen extends BaseScreen {
         list.add(button(text, action)).minSize(UiConfig.MIN_TOUCH_SIZE * 2, UiConfig.MIN_TOUCH_SIZE).pad(UiConfig.GAP / 4);
     }
 
-    /** Empty means 0. The digits-only filter and the length limit keep the text a small number. */
+    /** Empty means 0. The digits-only filter and the length limit keep the text a small number (at most 4 digits). */
     private static int number(TextField field) {
         String text = field.getText().trim();
         return text.isEmpty() ? 0 : Integer.parseInt(text);
