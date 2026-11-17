@@ -85,6 +85,41 @@ class DirtFeatureTest {
     }
 
     @Test
+    void cleaningTimeSurvivesARestartAndTheNextDirtCountsFromIt() {
+        start(0).saveNow();
+        game.clock.advanceMillis(3 * HOUR);
+        GameSession session = start(1);
+        DirtService dirt = session.get(DirtService.class);
+        long cleanedAt = session.time().nowMillis();
+        while (!dirt.spots().isEmpty()) {
+            dirt.wipe(640, 360, 100);
+        }
+        session.saveNow();
+
+        // 1 h 59 min later the glass is still clean, although 3 h 59 min passed since the last spot.
+        game.clock.advanceMillis(119 * 60_000L);
+        GameSession later = start(0);
+        assertThat(later.get(DirtService.class).lastCleanedGameMillis()).isEqualTo(cleanedAt);
+        assertThat(later.get(DirtService.class).spots()).isEmpty();
+        later.saveNow();
+
+        game.clock.advanceMillis(60_000L);
+        assertThat(start(1).get(DirtService.class).spots()).hasSize(1);
+    }
+
+    @Test
+    void oldSectionWithoutCleaningTimeStillLoads() {
+        start(0).saveNow();
+        game.store.save(SaveData.of(game.store.lastSaved().time(), Map.of("dirt",
+                new SaveSection(1, JsonParser.parseString("{\"spots\": [], \"progressMillis\": 600000}")))));
+
+        DirtService dirt = start(0).get(DirtService.class);
+
+        assertThat(dirt.lastCleanedGameMillis()).isZero();
+        assertThat(dirt.progressMillis()).isEqualTo(600_000);
+    }
+
+    @Test
     void dirtGrowsWhileTheGameIsRunning() {
         GameSession session = start(1);
 
@@ -123,7 +158,7 @@ class DirtFeatureTest {
 
         JsonObject data = game.store.lastSaved().sections().get("dirt").data().getAsJsonObject();
 
-        assertThat(data.keySet()).containsExactlyInAnyOrder("spots", "progressMillis");
+        assertThat(data.keySet()).containsExactlyInAnyOrder("spots", "progressMillis", "lastCleanedGameMillis");
         assertThat(data.get("progressMillis").getAsLong()).isEqualTo(HOUR);
         assertThat(data.getAsJsonArray("spots").get(0).getAsJsonObject().keySet())
                 .containsExactlyInAnyOrder("id", "x", "y", "radius", "variant", "rotationDeg", "strength");

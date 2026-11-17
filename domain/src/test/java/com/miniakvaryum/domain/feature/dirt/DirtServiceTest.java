@@ -23,13 +23,19 @@ class DirtServiceTest {
     private final EventBus events = new EventBus();
     private final List<AquariumCleaned> cleaned = new ArrayList<>();
     private int changes;
+    private long now = 5_000;
 
     DirtServiceTest() {
         events.subscribe(AquariumCleaned.class, cleaned::add);
     }
 
     private DirtService service(List<DirtSpot> spots) {
-        return new DirtService(spots, 0, CONFIG, random, new SequentialIds(), events, () -> changes++);
+        return service(spots, 0);
+    }
+
+    private DirtService service(List<DirtSpot> spots, long progressMillis) {
+        return new DirtService(spots, progressMillis, 0, CONFIG, random, new SequentialIds(), events, () -> changes++,
+                () -> now);
     }
 
     /** Scripts the random values for one spot: x, y, radius, variant, rotation. */
@@ -180,6 +186,46 @@ class DirtServiceTest {
     }
 
     @Test
+    void neverCleanedReportsZero() {
+        assertThat(service(List.of()).lastCleanedGameMillis()).isZero();
+    }
+
+    @Test
+    void cleaningStoresTheGameTimeAndRestartsTheInterval() {
+        DirtService dirt = service(List.of(spot("a", 500, 300)), 110 * 60_000L);
+        now = 9_000_000;
+
+        dirt.wipe(500, 300, 300);
+
+        assertThat(dirt.lastCleanedGameMillis()).isEqualTo(9_000_000);
+        assertThat(dirt.progressMillis()).isZero();
+    }
+
+    @Test
+    void nextDirtComesAFullIntervalAfterCleaning() {
+        // 1 h 50 min of the interval had passed when the child cleaned.
+        DirtService dirt = service(List.of(spot("a", 500, 300)), 110 * 60_000L);
+        dirt.wipe(500, 300, 300);
+        scriptSpots(1);
+
+        dirt.advance(2 * HOUR - 1);
+        assertThat(dirt.spots()).isEmpty();
+        dirt.advance(1);
+
+        assertThat(dirt.spots()).hasSize(1);
+    }
+
+    @Test
+    void wipingOneOfSeveralSpotsIsNotACleaning() {
+        DirtService dirt = service(List.of(spot("a", 500, 300), spot("b", 900, 300)), HOUR);
+
+        dirt.wipe(500, 300, 300);
+
+        assertThat(dirt.lastCleanedGameMillis()).isZero();
+        assertThat(dirt.progressMillis()).isEqualTo(HOUR);
+    }
+
+    @Test
     void levelCountsPartlyWipedSpots() {
         DirtService dirt = service(List.of(spot("a", 200, 300), spot("b", 600, 300), spot("c", 1000, 300)));
 
@@ -202,8 +248,10 @@ class DirtServiceTest {
 
         assertThatThrownBy(() -> dirt.advance(-1)).isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> dirt.wipe(0, 0, -1)).isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> new DirtService(List.of(), -1, CONFIG, random, new SequentialIds(), events, () -> { }))
-                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new DirtService(List.of(), -1, 0, CONFIG, random, new SequentialIds(), events,
+                () -> { }, () -> now)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new DirtService(List.of(), 0, -1, CONFIG, random, new SequentialIds(), events,
+                () -> { }, () -> now)).isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test

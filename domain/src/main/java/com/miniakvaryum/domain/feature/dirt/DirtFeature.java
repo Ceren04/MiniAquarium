@@ -46,9 +46,9 @@ public final class DirtFeature implements DomainFeature {
 
     @Override
     public void install(FeatureContext ctx) {
-        Section saved = ctx.savedSection().map(this::readSection).orElse(new Section(List.of(), 0));
-        service = new DirtService(saved.spots(), saved.progressMillis(), config, ctx.random(), ctx.ids(),
-                ctx.events(), ctx::requestSave);
+        Section saved = ctx.savedSection().map(this::readSection).orElse(new Section(List.of(), 0, 0));
+        service = new DirtService(saved.spots(), saved.progressMillis(), saved.lastCleanedGameMillis(), config,
+                ctx.random(), ctx.ids(), ctx.events(), ctx::requestSave, ctx.time()::nowMillis);
         // The aquarium got dirty while the app was closed.
         service.advance(ctx.creditedGap().millis());
         ctx.provide(DirtService.class, service);
@@ -68,7 +68,7 @@ public final class DirtFeature implements DomainFeature {
 
     @Override
     public Optional<SaveSection> save() {
-        Section section = new Section(service.spots(), service.progressMillis());
+        Section section = new Section(service.spots(), service.progressMillis(), service.lastCleanedGameMillis());
         return Optional.of(new SaveSection(SECTION_VERSION, gson.toJsonTree(section)));
     }
 
@@ -81,7 +81,11 @@ public final class DirtFeature implements DomainFeature {
         return parsed;
     }
 
-    /** Shape of the save section: {@code { "spots": [ ... ], "progressMillis": 0 }}. */
-    private record Section(List<DirtSpot> spots, long progressMillis) {
+    /**
+     * Shape of the save section:
+     * {@code { "spots": [ ... ], "progressMillis": 0, "lastCleanedGameMillis": 0 }}.
+     * A section without {@code lastCleanedGameMillis} reads it as 0 (never cleaned).
+     */
+    private record Section(List<DirtSpot> spots, long progressMillis, long lastCleanedGameMillis) {
     }
 }

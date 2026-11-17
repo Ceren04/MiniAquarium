@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.LongSupplier;
 
 /**
  * Dirt on the aquarium glass: spots appear over time and the child wipes them away.
@@ -18,7 +19,9 @@ import java.util.Objects;
  *
  * <p><b>Getting clean.</b> {@link #wipe} reduces the strength of every spot under the finger in
  * proportion to the rubbing distance. A spot at strength 0 disappears. When the last spot
- * disappears, {@link AquariumCleaned} is published.
+ * disappears the aquarium counts as cleaned: the game time of the cleaning is stored, the
+ * interval starts again from 0 (the next spot comes a full interval after cleaning), and
+ * {@link AquariumCleaned} is published.
  *
  * <p>Saving: {@code onChange} is called when a spot appears or disappears. Partial wiping is
  * not worth a save per frame; it is kept by the next autosave.
@@ -33,24 +36,30 @@ public final class DirtService {
     private final IdGenerator ids;
     private final EventBus events;
     private final Runnable onChange;
+    private final LongSupplier gameTimeNow;
     private final List<DirtSpot> spots;
     private final List<DirtSpot> readOnlySpots;
     private long progressMillis;
+    private long lastCleanedGameMillis;
 
     /**
      * @param spots          saved spots (an empty list for a new game)
-     * @param progressMillis saved game time since the last spot appeared
+     * @param progressMillis saved game time since the last spot appeared or the last cleaning
+     * @param lastCleanedGameMillis saved game time of the last cleaning, 0 if never cleaned
      * @param config         dirt rules
      * @param random         places and shapes new spots
      * @param ids            creates spot ids
      * @param events         where {@link AquariumCleaned} is published
      * @param onChange       called when a spot appears or disappears
+     * @param gameTimeNow    trusted game time, read when the aquarium is cleaned
      */
-    public DirtService(List<DirtSpot> spots, long progressMillis, DirtConfig config, RandomSource random,
-            IdGenerator ids, EventBus events, Runnable onChange) {
-        if (progressMillis < 0) {
-            throw new IllegalArgumentException("progressMillis must be >= 0 but was " + progressMillis);
+    public DirtService(List<DirtSpot> spots, long progressMillis, long lastCleanedGameMillis, DirtConfig config,
+            RandomSource random, IdGenerator ids, EventBus events, Runnable onChange, LongSupplier gameTimeNow) {
+        if (progressMillis < 0 || lastCleanedGameMillis < 0) {
+            throw new IllegalArgumentException("progressMillis and lastCleanedGameMillis must be >= 0");
         }
+        this.lastCleanedGameMillis = lastCleanedGameMillis;
+        this.gameTimeNow = Objects.requireNonNull(gameTimeNow, "gameTimeNow");
         this.spots = new ArrayList<>(Objects.requireNonNull(spots, "spots"));
         this.readOnlySpots = Collections.unmodifiableList(this.spots);
         this.progressMillis = progressMillis;
@@ -66,9 +75,17 @@ public final class DirtService {
         return readOnlySpots;
     }
 
-    /** Returns game time since the last spot appeared (saved, so the interval survives a restart). */
+    /**
+     * Returns game time since the last spot appeared or the last cleaning, whichever was later
+     * (saved, so the interval survives a restart).
+     */
     public long progressMillis() {
         return progressMillis;
+    }
+
+    /** Returns the game time of the last complete cleaning, or 0 if the aquarium was never cleaned. */
+    public long lastCleanedGameMillis() {
+        return lastCleanedGameMillis;
     }
 
     /**
@@ -151,6 +168,11 @@ public final class DirtService {
             }
         }
         if (removed) {
+            if (spots.isEmpty()) {
+                // Clean glass: the next dirt is measured from this moment.
+                lastCleanedGameMillis = gameTimeNow.getAsLong();
+                progressMillis = 0;
+            }
             onChange.run();
             if (spots.isEmpty()) {
                 events.publish(new AquariumCleaned());
