@@ -192,6 +192,7 @@ What `ui` offers:
 | `ui.main().showMessage(text, seconds)` | short message on the main screen |
 | `ui.nav().register(id, () -> new MyScreen(ui))` / `ui.nav().show(id)` | own screens |
 | `ui.shapes()` | placeholder images, or a file from `assets` if it exists |
+| `ui.restartFromSave()` | developer tools only: rebuild the game from the save file |
 
 For a screen of your own, extend `BaseScreen` and build it with Scene2D tables; use the
 inherited `button(text, action)` so buttons are big enough and skeleton code cannot crash the

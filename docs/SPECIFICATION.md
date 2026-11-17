@@ -241,6 +241,7 @@ public final class UiContext {
     public Navigator nav();           // register(id, factory), show(id), showMain()
     public MainLayout main();         // extension points of the main screen
     public ShapeTextures shapes();    // placeholder images, or a file from assets
+    public void restartFromSave();    // developer tools only (D-037)
 }
 
 public interface MainLayout {

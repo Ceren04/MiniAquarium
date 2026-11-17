@@ -17,13 +17,19 @@ public final class UiContext {
     private final Navigator nav;
     private final MainLayout main;
     private final ShapeTextures shapes;
+    private final Runnable restartFromSave;
 
-    public UiContext(GameSession session, Skin skin, Navigator nav, MainLayout main, ShapeTextures shapes) {
+    /**
+     * @param restartFromSave rebuilds the game from the save file; see {@link #restartFromSave()}
+     */
+    public UiContext(GameSession session, Skin skin, Navigator nav, MainLayout main, ShapeTextures shapes,
+            Runnable restartFromSave) {
         this.session = Objects.requireNonNull(session, "session");
         this.skin = Objects.requireNonNull(skin, "skin");
         this.nav = Objects.requireNonNull(nav, "nav");
         this.main = Objects.requireNonNull(main, "main");
         this.shapes = Objects.requireNonNull(shapes, "shapes");
+        this.restartFromSave = Objects.requireNonNull(restartFromSave, "restartFromSave");
     }
 
     /** The running game. Get domain services with {@code session().get(TaskService.class)}. */
@@ -49,5 +55,17 @@ public final class UiContext {
     /** Creates placeholder images in code and loads real images when they exist. */
     public ShapeTextures shapes() {
         return shapes;
+    }
+
+    /**
+     * Throws away the running game and builds it again from the save file, at the start of the
+     * next frame, <b>without saving first</b>: everything that is not in the save file is lost.
+     * Exactly the same steps run as when the app is started, including the offline time.
+     *
+     * <p>For developer tools only (for example time travel, which edits the save file and then
+     * restarts). Game features must not use it.
+     */
+    public void restartFromSave() {
+        restartFromSave.run();
     }
 }
