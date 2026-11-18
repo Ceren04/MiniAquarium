@@ -185,12 +185,14 @@ What `ui` offers:
 | `ui.session().get(X.class)` | a domain service |
 | `ui.main().addStatus(supplier)` | text in the top bar, refreshed every frame |
 | `ui.main().addButton(label, action)` / `addToggle(label, onToggle)` | button in the top bar |
-| `ui.main().addWorldLayer(z, actor)` | something drawn in the aquarium; lower z is further back (water -100, sand -90, pellets 0, fish 10) |
+| `ui.main().addWorldLayer(z, actor)` | something drawn in the aquarium; lower z is further back (water -100, sand -90, pellets 0, fish 10, dirt 20) |
 | `ui.main().addWorldTapHandler(handler)` | react to taps into the water |
+| `ui.main().addWorldDragHandler(handler)` | react to finger movements over the water (for example wiping) |
 | `ui.main().addDebugLine(supplier)` | a line in the F3 overlay |
 | `ui.main().showMessage(text, seconds)` | short message on the main screen |
 | `ui.nav().register(id, () -> new MyScreen(ui))` / `ui.nav().show(id)` | own screens |
 | `ui.shapes()` | placeholder images, or a file from `assets` if it exists |
+| `ui.restartFromSave()` | developer tools only: rebuild the game from the save file |
 
 For a screen of your own, extend `BaseScreen` and build it with Scene2D tables; use the
 inherited `button(text, action)` so buttons are big enough and skeleton code cannot crash the

@@ -21,7 +21,9 @@ If it is missing, install "Temurin 17 (LTS)" from https://adoptium.net and tick
 The first run downloads Gradle and the libraries and takes a few minutes.
 
 While `:desktop:run` shows `EXECUTING`, the game is running; the command ends when you close
-the window. Press **F3** in the game for the debug overlay.
+the window. Press **F3** in the game for the debug overlay and **F9** for the developer bar:
+"+5 food", time jumps ("+1 h", "+6 h", "+24 h": the game restarts as if it had been closed that
+long) and "Undo time" (back to the moment before the first jump).
 
 ### If it does not start
 
@@ -70,6 +72,7 @@ domain/.../domain/
     security/  parent PIN, ParentSession                 complete
     tasks/     TaskService                               complete
     aquarium/  fish, food pellets, world simulation      complete except LevelRules
+    dirt/      dirt spots on the glass, wiping           complete
   DomainFeatures.java          the list of features: one line each
 
 game/.../game/
@@ -78,6 +81,7 @@ game/.../game/
   feature/
     economy/   coin and food display                     complete
     aquarium/  water, sand, fish, pellets, feed mode     complete
+    dirt/      dirt spots, tap and rub to clean          complete
     security/  PIN gate screen                           complete
     tasks/     child task list, parent area              complete
   GameFeatures.java            the list of UI features: one line each

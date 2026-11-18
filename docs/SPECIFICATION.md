@@ -241,6 +241,7 @@ public final class UiContext {
     public Navigator nav();           // register(id, factory), show(id), showMain()
     public MainLayout main();         // extension points of the main screen
     public ShapeTextures shapes();    // placeholder images, or a file from assets
+    public void restartFromSave();    // developer tools only (D-037)
 }
 
 public interface MainLayout {
@@ -249,12 +250,13 @@ public interface MainLayout {
     TextButton addButton(String label, Runnable onClick);
     TextButton addToggle(String label, Consumer<Boolean> onToggle);
     void addWorldTapHandler(WorldTapHandler handler);         // first handler returning true wins
+    void addWorldDragHandler(WorldDragHandler handler);       // finger movements, same rule
     void addDebugLine(Supplier<String> line);                 // F3 overlay
     void showMessage(String text, float seconds);
 }
 ```
 
-The main screen contains no feature code. World layers in use: water -100, sand -90, pellets 0, fish 10.
+The main screen contains no feature code. World layers in use: water -100, sand -90, pellets 0, fish 10, dirt 20.
 
 Screens extend `BaseScreen(Skin)`, which provides the stage with a `FitViewport(1280, 720)`, input routing, `newRootTable()`, `button(text, action)`, `showMessage(text, seconds)` and `guarded(action)`. `guarded` turns the `UnsupportedOperationException` of skeleton code into an on-screen message; every button created with `button(...)` and every world tap is guarded.
 

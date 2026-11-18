@@ -3,6 +3,7 @@ package com.miniakvaryum.game;
 import com.miniakvaryum.game.core.GameFeature;
 import com.miniakvaryum.game.feature.aquarium.AquariumGameFeature;
 import com.miniakvaryum.game.feature.devtools.DevToolsGameFeature;
+import com.miniakvaryum.game.feature.dirt.DirtGameFeature;
 import com.miniakvaryum.game.feature.economy.EconomyGameFeature;
 import com.miniakvaryum.game.feature.security.SecurityGameFeature;
 import com.miniakvaryum.game.feature.tasks.TasksGameFeature;
@@ -27,6 +28,7 @@ public final class GameFeatures {
                 new EconomyGameFeature(),
                 new DevToolsGameFeature(),
                 new AquariumGameFeature(),
+                new DirtGameFeature(),          // after the aquarium: feed mode wins taps
                 new TasksGameFeature(),
                 // After a correct PIN the gate opens the parent area of the tasks feature.
                 new SecurityGameFeature(TasksGameFeature.SCREEN_PARENT_AREA)

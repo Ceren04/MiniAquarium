@@ -39,6 +39,7 @@ public final class MiniAkvaryumGame extends Game {
     private Skin skin;
     private ShapeTextures shapes;
     private Navigator navigator;
+    private boolean restartRequested;
 
     public MiniAkvaryumGame(Clock clock, BootIdProvider bootIdProvider) {
         this.clock = Objects.requireNonNull(clock, "clock");
@@ -47,6 +48,15 @@ public final class MiniAkvaryumGame extends Game {
 
     @Override
     public void create() {
+        skin = UiSkin.create();
+        buildGame();
+    }
+
+    /**
+     * Loads the save, installs every domain feature, then builds the UI and installs every UI
+     * feature. Runs at start-up and again for {@link UiContext#restartFromSave()}.
+     */
+    private void buildGame() {
         // 1. Game rules: load the save and install every domain feature.
         session = GameSessionFactory.create(
                 clock,
@@ -58,15 +68,14 @@ public final class MiniAkvaryumGame extends Game {
                 CoreConfig.defaults(),
                 DomainFeatures.all());
 
-        // 2. UI core: shared look, placeholder images, screen switching, the empty main screen.
-        skin = UiSkin.create();
+        // 2. UI core: placeholder images, screen switching, the empty main screen.
         shapes = new ShapeTextures();
         navigator = new Navigator(this);
         MainScreen mainScreen = new MainScreen(session, skin);
         navigator.register(Navigator.MAIN, () -> mainScreen);
 
         // 3. UI features: each one adds its screens, buttons and drawings.
-        UiContext ui = new UiContext(session, skin, navigator, mainScreen, shapes);
+        UiContext ui = new UiContext(session, skin, navigator, mainScreen, shapes, () -> restartRequested = true);
         for (GameFeature feature : GameFeatures.all()) {
             feature.install(ui);
         }
@@ -74,8 +83,21 @@ public final class MiniAkvaryumGame extends Game {
         navigator.showMain();
     }
 
+    /** Throws the running game away (without saving) and builds it again from the save file. */
+    private void restartFromSave() {
+        setScreen(null);
+        navigator.dispose();
+        shapes.dispose();
+        buildGame();
+    }
+
     @Override
     public void render() {
+        // A restart is done here, between frames, never in the middle of handling a click.
+        if (restartRequested) {
+            restartRequested = false;
+            restartFromSave();
+        }
         // Advance the game rules first, on every screen, then let the active screen draw.
         session.tick(Math.min(Gdx.graphics.getDeltaTime(), MAX_FRAME_SECONDS));
         super.render();

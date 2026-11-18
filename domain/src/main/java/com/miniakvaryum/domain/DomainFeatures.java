@@ -3,6 +3,8 @@ package com.miniakvaryum.domain;
 import com.miniakvaryum.domain.core.module.DomainFeature;
 import com.miniakvaryum.domain.feature.aquarium.AquariumConfig;
 import com.miniakvaryum.domain.feature.aquarium.AquariumFeature;
+import com.miniakvaryum.domain.feature.dirt.DirtConfig;
+import com.miniakvaryum.domain.feature.dirt.DirtFeature;
 import com.miniakvaryum.domain.feature.economy.EconomyConfig;
 import com.miniakvaryum.domain.feature.economy.EconomyFeature;
 import com.miniakvaryum.domain.feature.security.SecurityConfig;
@@ -29,7 +31,8 @@ public final class DomainFeatures {
                 new EconomyFeature(EconomyConfig.defaults()),
                 new SecurityFeature(SecurityConfig.defaults()),
                 new TasksFeature(TasksConfig.defaults()),       // needs economy, security
-                new AquariumFeature(AquariumConfig.defaults())  // needs economy
+                new AquariumFeature(AquariumConfig.defaults()), // needs economy
+                new DirtFeature(DirtConfig.defaults())
         );
     }
 }
