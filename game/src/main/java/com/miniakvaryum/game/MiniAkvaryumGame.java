@@ -8,6 +8,7 @@ import com.miniakvaryum.domain.core.save.JsonFileSaveStore;
 import com.miniakvaryum.domain.core.session.CoreConfig;
 import com.miniakvaryum.domain.core.session.GameSession;
 import com.miniakvaryum.domain.core.session.GameSessionFactory;
+import com.miniakvaryum.domain.core.time.AdjustableLocalClock;
 import com.miniakvaryum.domain.core.time.BootIdProvider;
 import com.miniakvaryum.domain.core.time.Clock;
 import com.miniakvaryum.domain.core.util.JavaRandomSource;
@@ -34,6 +35,8 @@ public final class MiniAkvaryumGame extends Game {
 
     private final Clock clock;
     private final BootIdProvider bootIdProvider;
+    /** Local time for bedtime; kept across restarts so a developer shift stays. */
+    private final AdjustableLocalClock localClock;
 
     private GameSession session;
     private Skin skin;
@@ -44,6 +47,7 @@ public final class MiniAkvaryumGame extends Game {
     public MiniAkvaryumGame(Clock clock, BootIdProvider bootIdProvider) {
         this.clock = Objects.requireNonNull(clock, "clock");
         this.bootIdProvider = Objects.requireNonNull(bootIdProvider, "bootIdProvider");
+        this.localClock = AdjustableLocalClock.ofSystemZone(clock);
     }
 
     @Override
@@ -66,7 +70,7 @@ public final class MiniAkvaryumGame extends Game {
                 new JavaRandomSource(clock.monotonicNanos()),
                 new UuidIdGenerator(),
                 CoreConfig.defaults(),
-                DomainFeatures.all());
+                DomainFeatures.all(localClock));
 
         // 2. UI core: placeholder images, screen switching, the empty main screen.
         shapes = new ShapeTextures();

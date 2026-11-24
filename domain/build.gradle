@@ -28,6 +28,7 @@ def coverageGatedPackages = [
         'com/miniakvaryum/domain/feature/security/**',
         'com/miniakvaryum/domain/feature/tasks/**',
         'com/miniakvaryum/domain/feature/dirt/**',
+        'com/miniakvaryum/domain/feature/bedtime/**',
 ]
 
 tasks.named('test') {

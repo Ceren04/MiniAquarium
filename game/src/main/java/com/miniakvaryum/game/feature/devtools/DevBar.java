@@ -17,7 +17,7 @@ import java.util.function.Supplier;
 
 /**
  * The developer bar: a strip along the bottom of the world with the dev buttons, laid out left
- * to right, and a status text on the right. It is hidden until the toggle key is pressed.
+ * to right, and a status text right after the last button. It is hidden until the toggle key is pressed.
  *
  * <p>The bar only draws. Its buttons do not receive touches themselves (they are not
  * touchable); the feature forwards world taps to {@link #handleTap}, which keeps the click logic
@@ -60,21 +60,28 @@ final class DevBar extends Group {
 
         status = new Label("", skin);
         status.setTouchable(Touchable.disabled);
-        status.setPosition(worldWidth - 300f, BUTTON_Y + BUTTON_HEIGHT / 2f - 12f);
+        // Inside the strip, right after the last button (moved along in addButton).
+        status.setPosition(nextButtonX, BUTTON_Y + BUTTON_HEIGHT / 2f - 12f);
         panel.addActor(status);
 
         panel.setVisible(false);
         addActor(panel);
     }
 
-    /** Adds a button to the right of the previous one. */
-    void addButton(String text, float width, Runnable action) {
+    /**
+     * Adds a button to the right of the previous one.
+     *
+     * @return the button, so its label can change
+     */
+    TextButton addButton(String text, float width, Runnable action) {
         TextButton button = new TextButton(text, skin);
         button.setBounds(nextButtonX, BUTTON_Y, width, BUTTON_HEIGHT);
         button.setTouchable(Touchable.disabled);
         panel.addActor(button);
         buttons.add(new Button(new Rectangle(nextButtonX, BUTTON_Y, width, BUTTON_HEIGHT), action));
         nextButtonX += width + GAP;
+        status.setX(nextButtonX);
+        return button;
     }
 
     /** Shows or hides the bar. */

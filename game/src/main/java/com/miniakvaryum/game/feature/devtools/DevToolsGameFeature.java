@@ -1,5 +1,8 @@
 package com.miniakvaryum.game.feature.devtools;
 
+import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
+import com.miniakvaryum.domain.core.time.AdjustableLocalClock;
+import com.miniakvaryum.domain.core.time.LocalClock;
 import com.miniakvaryum.domain.feature.aquarium.api.world.AquariumWorld;
 import com.miniakvaryum.domain.feature.economy.api.Currency;
 import com.miniakvaryum.domain.feature.economy.api.TxResult;
@@ -7,6 +10,7 @@ import com.miniakvaryum.domain.feature.economy.api.Wallet;
 import com.miniakvaryum.game.core.GameFeature;
 import com.miniakvaryum.game.core.UiContext;
 import java.io.UncheckedIOException;
+import java.time.LocalTime;
 import java.util.OptionalLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -22,6 +26,8 @@ import java.util.logging.Logger;
  *   <li><b>+1 h, +6 h, +24 h</b>: the game restarts as if it had been closed that long
  *       ({@link TimeTravel}). The bar stays open and shows how far the game is ahead.</li>
  *   <li><b>Undo time</b>: back to the moment before the first jump.</li>
+ *   <li><b>Clock</b>: real time, 20:59, 06:59: shifts only the game's local clock to try
+ *       bedtime (TC-9) without touching the device clock.</li>
  * </ul>
  *
  * <p>Register this feature in {@code GameFeatures} <b>before</b> the aquarium feature: in feed
@@ -40,6 +46,10 @@ public final class DevToolsGameFeature implements GameFeature {
     private static final float NARROW_BUTTON = 110f;
     private static final long HOUR = 3_600_000L;
     private static final long MINUTE = 60_000L;
+    private static final float CLOCK_BUTTON = 160f;
+    private static final LocalTime BEFORE_BEDTIME = LocalTime.of(20, 59);
+    private static final LocalTime BEFORE_MORNING = LocalTime.of(6, 59);
+    private static final int NOON = 12;
 
     @Override
     public String id() {
@@ -58,11 +68,39 @@ public final class DevToolsGameFeature implements GameFeature {
         bar.addButton(DevToolsStrings.JUMP_6H, NARROW_BUTTON, () -> jump(ui, time, 6 * HOUR));
         bar.addButton(DevToolsStrings.JUMP_24H, NARROW_BUTTON, () -> jump(ui, time, 24 * HOUR));
         bar.addButton(DevToolsStrings.UNDO_TIME, WIDE_BUTTON, () -> undo(ui, time));
+        if (ui.session().get(LocalClock.class) instanceof AdjustableLocalClock clock) {
+            addClockButton(bar, clock);
+        }
         // After a jump the game was rebuilt; keep the bar open so the result can be seen.
         bar.setShown(time.hasCheckpoint());
 
         ui.main().addWorldLayer(BAR_LAYER_Z, bar);
         ui.main().addWorldTapHandler((x, y) -> bar.handleTap((float) x, (float) y));
+    }
+
+    /**
+     * One button that cycles the local clock: real time, 20:59 (one minute before bedtime),
+     * 06:59 (one minute before morning), real time again. Only the game's clock moves, never the
+     * device clock; the shift is not saved, but it survives the restarts of the time travel.
+     */
+    private void addClockButton(DevBar bar, AdjustableLocalClock clock) {
+        TextButton[] button = new TextButton[1];
+        String start = clock.isShifted() ? DevToolsStrings.CLOCK_SHIFTED : DevToolsStrings.CLOCK_REAL;
+        button[0] = bar.addButton(start, CLOCK_BUTTON, () -> {
+            if (!clock.isShifted()) {
+                shiftTo(clock, button[0], BEFORE_BEDTIME);
+            } else if (clock.now().getHour() >= NOON) {
+                shiftTo(clock, button[0], BEFORE_MORNING);
+            } else {
+                clock.resetForDevelopment();
+                button[0].setText(DevToolsStrings.CLOCK_REAL);
+            }
+        });
+    }
+
+    private static void shiftTo(AdjustableLocalClock clock, TextButton button, LocalTime time) {
+        clock.setTimeOfDayForDevelopment(time);
+        button.setText(String.format(DevToolsStrings.CLOCK_AT, time));
     }
 
     private void addFood(UiContext ui, Wallet wallet) {

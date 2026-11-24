@@ -6,6 +6,7 @@ import com.miniakvaryum.domain.core.session.CoreConfig;
 import com.miniakvaryum.domain.core.session.GameSession;
 import com.miniakvaryum.domain.core.session.GameSessionFactory;
 import com.miniakvaryum.domain.feature.aquarium.AquariumConfig;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -30,9 +31,11 @@ public final class TestGame {
     public final InMemorySaveStore store = new InMemorySaveStore();
     public final ScriptedRandom random = new ScriptedRandom();
     public final SequentialIds ids = new SequentialIds();
+    /** Local time for bedtime; 15:00 by default, so bedtime does not interfere with other tests. */
+    public final FixedLocalClock localClock = new FixedLocalClock(LocalDateTime.of(2026, 11, 24, 15, 0));
 
     /**
-     * Starts a session with every feature of the real game ({@link DomainFeatures#all()}).
+     * Starts a session with every feature of the real game ({@link DomainFeatures#all}).
      * Fish start in the middle of the swim area.
      */
     public GameSession startFullGame() {
@@ -41,7 +44,7 @@ public final class TestGame {
         for (int i = 0; i < fishCount * 2; i++) {
             random.doubles(0.5);
         }
-        return GameSessionFactory.create(clock, boot, store, random, ids, CoreConfig.defaults(), DomainFeatures.all());
+        return GameSessionFactory.create(clock, boot, store, random, ids, CoreConfig.defaults(), DomainFeatures.all(localClock));
     }
 
     /** Starts a session with the given features, in the given order. */
