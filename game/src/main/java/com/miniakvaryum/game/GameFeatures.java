@@ -2,6 +2,7 @@ package com.miniakvaryum.game;
 
 import com.miniakvaryum.game.core.GameFeature;
 import com.miniakvaryum.game.feature.aquarium.AquariumGameFeature;
+import com.miniakvaryum.game.feature.bedtime.BedtimeGameFeature;
 import com.miniakvaryum.game.feature.devtools.DevToolsGameFeature;
 import com.miniakvaryum.game.feature.dirt.DirtGameFeature;
 import com.miniakvaryum.game.feature.economy.EconomyGameFeature;
@@ -31,6 +32,7 @@ public final class GameFeatures {
                 new EconomyGameFeature(),
                 new EnergyGameFeature(),        // energy bar next to coins and food
                 new DevToolsGameFeature(),
+                new BedtimeGameFeature(),       // before the aquarium: a tap on the greeting closes it
                 new AquariumGameFeature(),
                 new DirtGameFeature(),          // after the aquarium: feed mode wins taps
                 new TasksGameFeature(),
