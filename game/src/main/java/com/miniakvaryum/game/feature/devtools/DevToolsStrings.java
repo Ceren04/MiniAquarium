@@ -9,6 +9,8 @@ final class DevToolsStrings {
     static final String JUMP_6H = "+6 h";
     static final String JUMP_24H = "+24 h";
     static final String UNDO_TIME = "Undo time";
+    static final String ENERGY_0 = "E: 0";
+    static final String ENERGY_100 = "E: 100";
     static final String NOTHING_TO_UNDO = "No time jump to undo";
     static final String TIME_FAILED = "Time travel failed, see the log";
     /** Use with String.format: hours, then minutes, ahead of the checkpoint. */

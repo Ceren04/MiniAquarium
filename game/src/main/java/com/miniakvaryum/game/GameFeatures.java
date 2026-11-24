@@ -5,6 +5,7 @@ import com.miniakvaryum.game.feature.aquarium.AquariumGameFeature;
 import com.miniakvaryum.game.feature.devtools.DevToolsGameFeature;
 import com.miniakvaryum.game.feature.dirt.DirtGameFeature;
 import com.miniakvaryum.game.feature.economy.EconomyGameFeature;
+import com.miniakvaryum.game.feature.energy.EnergyGameFeature;
 import com.miniakvaryum.game.feature.security.SecurityGameFeature;
 import com.miniakvaryum.game.feature.tasks.TasksGameFeature;
 import java.util.List;
@@ -26,6 +27,7 @@ public final class GameFeatures {
     public static List<GameFeature> all() {
         return List.of(
                 new EconomyGameFeature(),
+                new EnergyGameFeature(),        // energy bar next to coins and food
                 new DevToolsGameFeature(),
                 new AquariumGameFeature(),
                 new DirtGameFeature(),          // after the aquarium: feed mode wins taps

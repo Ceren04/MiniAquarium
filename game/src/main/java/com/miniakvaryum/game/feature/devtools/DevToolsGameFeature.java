@@ -4,6 +4,7 @@ import com.miniakvaryum.domain.feature.aquarium.api.world.AquariumWorld;
 import com.miniakvaryum.domain.feature.economy.api.Currency;
 import com.miniakvaryum.domain.feature.economy.api.TxResult;
 import com.miniakvaryum.domain.feature.economy.api.Wallet;
+import com.miniakvaryum.domain.feature.energy.api.EnergyService;
 import com.miniakvaryum.game.core.GameFeature;
 import com.miniakvaryum.game.core.UiContext;
 import java.io.UncheckedIOException;
@@ -22,6 +23,8 @@ import java.util.logging.Logger;
  *   <li><b>+1 h, +6 h, +24 h</b>: the game restarts as if it had been closed that long
  *       ({@link TimeTravel}). The bar stays open and shows how far the game is ahead.</li>
  *   <li><b>Undo time</b>: back to the moment before the first jump.</li>
+ *   <li><b>E: 0 / E: 100</b>: sets the energy, to try the energy bar and the minigame
+ *       limit (for example "E: 0", then "+1 h": the bar shows 10).</li>
  * </ul>
  *
  * <p>Register this feature in {@code GameFeatures} <b>before</b> the aquarium feature: in feed
@@ -38,6 +41,7 @@ public final class DevToolsGameFeature implements GameFeature {
     private static final float MESSAGE_SECONDS = 2f;
     private static final float WIDE_BUTTON = 160f;
     private static final float NARROW_BUTTON = 110f;
+    private static final float ENERGY_BUTTON = 95f;
     private static final long HOUR = 3_600_000L;
     private static final long MINUTE = 60_000L;
 
@@ -58,6 +62,9 @@ public final class DevToolsGameFeature implements GameFeature {
         bar.addButton(DevToolsStrings.JUMP_6H, NARROW_BUTTON, () -> jump(ui, time, 6 * HOUR));
         bar.addButton(DevToolsStrings.JUMP_24H, NARROW_BUTTON, () -> jump(ui, time, 24 * HOUR));
         bar.addButton(DevToolsStrings.UNDO_TIME, WIDE_BUTTON, () -> undo(ui, time));
+        EnergyService energy = ui.session().get(EnergyService.class);
+        bar.addButton(DevToolsStrings.ENERGY_0, ENERGY_BUTTON, () -> energy.setForDevelopment(0));
+        bar.addButton(DevToolsStrings.ENERGY_100, ENERGY_BUTTON, () -> energy.setForDevelopment(energy.max()));
         // After a jump the game was rebuilt; keep the bar open so the result can be seen.
         bar.setShown(time.hasCheckpoint());
 
