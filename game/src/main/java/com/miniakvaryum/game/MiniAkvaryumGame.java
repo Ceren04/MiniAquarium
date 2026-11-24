@@ -4,6 +4,11 @@ import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.miniakvaryum.domain.DomainFeatures;
+import com.miniakvaryum.domain.core.account.Account;
+import com.miniakvaryum.domain.core.account.AccountService;
+import com.miniakvaryum.domain.core.account.AccountStore;
+import com.miniakvaryum.domain.core.account.AccountsConfig;
+import com.miniakvaryum.domain.core.account.PasswordHasher;
 import com.miniakvaryum.domain.core.save.JsonFileSaveStore;
 import com.miniakvaryum.domain.core.session.CoreConfig;
 import com.miniakvaryum.domain.core.session.GameSession;
@@ -14,11 +19,16 @@ import com.miniakvaryum.domain.core.util.JavaRandomSource;
 import com.miniakvaryum.domain.core.util.UuidIdGenerator;
 import com.miniakvaryum.game.core.GameFeature;
 import com.miniakvaryum.game.core.UiContext;
+import com.miniakvaryum.game.core.account.AccountFlow;
+import com.miniakvaryum.game.core.account.AccountStrings;
+import com.miniakvaryum.game.core.account.SignOutConfirmScreen;
 import com.miniakvaryum.game.core.ui.MainScreen;
 import com.miniakvaryum.game.core.ui.Navigator;
 import com.miniakvaryum.game.core.ui.ShapeTextures;
 import com.miniakvaryum.game.core.ui.UiSkin;
+import java.time.ZoneId;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * Entry point of the game on every platform, and the composition root of the UI.
@@ -26,6 +36,11 @@ import java.util.Objects;
  * <p>libGDX calls {@link #create()} once at start-up, {@link #render()} once per frame and
  * {@link #dispose()} once when the window closes. Platform modules (desktop, later android)
  * only create this object, give it their clock and boot id, and hand it to libGDX.
+ *
+ * <p><b>Accounts.</b> Before a game session exists, the account screens ({@link AccountFlow})
+ * run: Welcome, Sign up, Sign in. With "Remember me" the remembered account starts directly.
+ * Each account plays with the save in its own folder ({@code accounts/<id>}), so everything in
+ * the game, the parent PIN included, belongs to one account.
  */
 public final class MiniAkvaryumGame extends Game {
 
@@ -41,6 +56,15 @@ public final class MiniAkvaryumGame extends Game {
     private Navigator navigator;
     private boolean restartRequested;
 
+    private AccountService accounts;
+    /** The account whose game is running; null while the account screens are shown. */
+    private Account account;
+    /** The account screens; null while a game is running. */
+    private AccountFlow accountFlow;
+    /** Set by the account screens; the game for it is started between two frames. */
+    private Account accountToStart;
+    private boolean signOutRequested;
+
     public MiniAkvaryumGame(Clock clock, BootIdProvider bootIdProvider) {
         this.clock = Objects.requireNonNull(clock, "clock");
         this.bootIdProvider = Objects.requireNonNull(bootIdProvider, "bootIdProvider");
@@ -49,7 +73,47 @@ public final class MiniAkvaryumGame extends Game {
     @Override
     public void create() {
         skin = UiSkin.create();
+        AccountsConfig accountsConfig = AccountsConfig.defaults();
+        accounts = new AccountService(new AccountStore(JsonFileSaveStore.defaultDirectory()),
+                new PasswordHasher(accountsConfig.pbkdf2Iterations()), clock, ZoneId.systemDefault(),
+                new UuidIdGenerator(), accountsConfig);
+        Optional<Account> remembered = accounts.remembered();
+        if (remembered.isPresent()) {
+            startGame(remembered.get());
+        } else {
+            showAccountScreens();
+        }
+    }
+
+    /** Shows Welcome / Sign up / Sign in. */
+    private void showAccountScreens() {
+        accountFlow = new AccountFlow(this, skin, accounts, signedIn -> accountToStart = signedIn);
+        accountFlow.start();
+    }
+
+    /** Leaves the account screens and starts the game of the given account. */
+    private void startGame(Account signedIn) {
+        if (accountFlow != null) {
+            setScreen(null);
+            accountFlow.dispose();
+            accountFlow = null;
+        }
+        account = signedIn;
         buildGame();
+    }
+
+    /** Saves and closes the running game, forgets "Remember me" and shows the Welcome screen. */
+    private void signOut() {
+        session.saveNow();
+        setScreen(null);
+        navigator.dispose();
+        shapes.dispose();
+        navigator = null;
+        shapes = null;
+        session = null;
+        account = null;
+        accounts.forget();
+        showAccountScreens();
     }
 
     /**
@@ -61,7 +125,7 @@ public final class MiniAkvaryumGame extends Game {
         session = GameSessionFactory.create(
                 clock,
                 bootIdProvider,
-                new JsonFileSaveStore(JsonFileSaveStore.defaultDirectory()),
+                new JsonFileSaveStore(accounts.folderOf(account)),
                 // The clock reading is used only as the seed of the random numbers.
                 new JavaRandomSource(clock.monotonicNanos()),
                 new UuidIdGenerator(),
@@ -75,10 +139,15 @@ public final class MiniAkvaryumGame extends Game {
         navigator.register(Navigator.MAIN, () -> mainScreen);
 
         // 3. UI features: each one adds its screens, buttons and drawings.
-        UiContext ui = new UiContext(session, skin, navigator, mainScreen, shapes, () -> restartRequested = true);
+        UiContext ui = new UiContext(session, skin, navigator, mainScreen, shapes, () -> restartRequested = true,
+                account, accounts.folderOf(account));
         for (GameFeature feature : GameFeatures.all()) {
             feature.install(ui);
         }
+        // Temporary: the profile screen (V12, step 4) will have the real "Sign out" button.
+        navigator.register(SignOutConfirmScreen.ID,
+                () -> new SignOutConfirmScreen(skin, () -> signOutRequested = true, navigator::showMain));
+        mainScreen.addButton(AccountStrings.SIGN_OUT, () -> navigator.show(SignOutConfirmScreen.ID));
 
         navigator.showMain();
     }
@@ -93,13 +162,25 @@ public final class MiniAkvaryumGame extends Game {
 
     @Override
     public void render() {
-        // A restart is done here, between frames, never in the middle of handling a click.
+        // Restart, sign-in and sign-out are done here, between frames, never in the middle of
+        // handling a click.
         if (restartRequested) {
             restartRequested = false;
             restartFromSave();
         }
+        if (accountToStart != null) {
+            Account next = accountToStart;
+            accountToStart = null;
+            startGame(next);
+        }
+        if (signOutRequested) {
+            signOutRequested = false;
+            signOut();
+        }
         // Advance the game rules first, on every screen, then let the active screen draw.
-        session.tick(Math.min(Gdx.graphics.getDeltaTime(), MAX_FRAME_SECONDS));
+        if (session != null) {
+            session.tick(Math.min(Gdx.graphics.getDeltaTime(), MAX_FRAME_SECONDS));
+        }
         super.render();
     }
 
@@ -111,6 +192,9 @@ public final class MiniAkvaryumGame extends Game {
         }
         if (shapes != null) {
             shapes.dispose();
+        }
+        if (accountFlow != null) {
+            accountFlow.dispose();
         }
         if (skin != null) {
             skin.dispose();

@@ -50,7 +50,7 @@ public final class DevToolsGameFeature implements GameFeature {
     public void install(UiContext ui) {
         Wallet wallet = ui.session().get(Wallet.class);
         float worldWidth = (float) ui.session().get(AquariumWorld.class).config().world().worldWidth();
-        TimeTravel time = new TimeTravel(ui.session(), ui::restartFromSave);
+        TimeTravel time = new TimeTravel(ui.session(), ui.saveFolder(), ui::restartFromSave);
 
         DevBar bar = new DevBar(ui.skin(), worldWidth, () -> aheadText(time));
         bar.addButton(DevToolsStrings.ADD_FOOD, WIDE_BUTTON, () -> addFood(ui, wallet));

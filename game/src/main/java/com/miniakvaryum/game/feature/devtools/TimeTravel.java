@@ -38,10 +38,13 @@ final class TimeTravel {
     /** Game time of the checkpoint, read once; empty if there is no checkpoint. */
     private final OptionalLong checkpointGameMillis;
 
-    TimeTravel(GameSession session, Runnable restartFromSave) {
+    /**
+     * @param saveFolder the save folder of the signed-in account
+     */
+    TimeTravel(GameSession session, Path saveFolder, Runnable restartFromSave) {
         this.session = Objects.requireNonNull(session, "session");
         this.restartFromSave = Objects.requireNonNull(restartFromSave, "restartFromSave");
-        Path saveFolder = JsonFileSaveStore.defaultDirectory();
+        Objects.requireNonNull(saveFolder, "saveFolder");
         this.store = new JsonFileSaveStore(saveFolder);
         this.checkpointFolder = saveFolder.resolve(CHECKPOINT_FOLDER);
         this.checkpointStore = new JsonFileSaveStore(checkpointFolder);
