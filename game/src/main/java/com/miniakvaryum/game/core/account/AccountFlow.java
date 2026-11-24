@@ -2,19 +2,13 @@ package com.miniakvaryum.game.core.account;
 
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.TextField;
-import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
 import com.badlogic.gdx.utils.Disposable;
 import com.miniakvaryum.domain.core.account.Account;
 import com.miniakvaryum.domain.core.account.AccountService;
 import com.miniakvaryum.domain.core.account.SignUpDraft;
 import com.miniakvaryum.game.core.ui.Navigator;
-import com.miniakvaryum.game.core.ui.ShapeTextures;
-import com.miniakvaryum.game.core.ui.UiSkin;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -26,7 +20,7 @@ import java.util.Objects;
  * <p>Nothing here touches the parent PIN: it stays in the save of each account and is set the
  * first time the parent area is opened, as before.
  */
-public final class AccountFlow implements Disposable {
+public final class AccountFlow implements AccountUi, Disposable {
 
     /** Called once the child is signed in or has just signed up. */
     public interface Done {
@@ -44,15 +38,13 @@ public final class AccountFlow implements Disposable {
     static final String SIGN_IN = "sign-in";
     static final String FORGOT_PASSWORD = "forgot-password";
 
-    private static final float FIELD_PADDING = 12f;
     private static final Color BACKGROUND = new Color(0.05f, 0.24f, 0.38f, 1f);
 
     private final Skin skin;
     private final AccountService accounts;
     private final Done done;
-    private final ShapeTextures shapes = new ShapeTextures();
+    private final AccountPictures pictures;
     private final Navigator nav;
-    private final Map<String, Texture> circles = new HashMap<>();
     private TextField.TextFieldStyle fieldStyle;
 
     /** Sign-up data collected so far; only in memory. */
@@ -60,8 +52,12 @@ public final class AccountFlow implements Disposable {
     /** Username typed on the sign-in screen, handed to "Forgot password?". */
     private String typedUsername = "";
 
-    public AccountFlow(Game game, Skin skin, AccountService accounts, Done done) {
+    /**
+     * @param pictures profile pictures; owned by the game, not disposed here
+     */
+    public AccountFlow(Game game, Skin skin, AccountService accounts, AccountPictures pictures, Done done) {
         this.skin = Objects.requireNonNull(skin, "skin");
+        this.pictures = Objects.requireNonNull(pictures, "pictures");
         this.accounts = Objects.requireNonNull(accounts, "accounts");
         this.done = Objects.requireNonNull(done, "done");
         this.nav = new Navigator(game);
@@ -81,41 +77,33 @@ public final class AccountFlow implements Disposable {
 
     // ---------------------------------------------------------------- for the screens
 
-    Skin skin() {
+    @Override
+    public Skin skin() {
         return skin;
     }
 
-    AccountService accounts() {
+    @Override
+    public AccountService accounts() {
         return accounts;
     }
 
     /** Text field look of the account screens: the skin's look with some space inside. */
-    TextField.TextFieldStyle fieldStyle() {
+    @Override
+    public TextField.TextFieldStyle fieldStyle() {
         if (fieldStyle == null) {
-            fieldStyle = new TextField.TextFieldStyle(skin.get(TextField.TextFieldStyle.class));
-            Drawable background = skin.newDrawable(UiSkin.WHITE, Color.WHITE);
-            background.setLeftWidth(FIELD_PADDING);
-            background.setRightWidth(FIELD_PADDING);
-            fieldStyle.background = background;
+            fieldStyle = AccountScreen.paddedFieldStyle(skin);
         }
         return fieldStyle;
     }
 
-    /** A filled circle, created once per size and color. */
-    Texture circle(int diameter, Color color) {
-        return circles.computeIfAbsent(diameter + "/" + color, key -> shapes.circle(diameter, color));
+    /** Profile pictures, avatars and circles. */
+    @Override
+    public AccountPictures pictures() {
+        return pictures;
     }
 
-    /** The image of an avatar, loaded once; a gray circle if the file is missing. */
-    Texture avatar(String avatarId) {
-        return circles.computeIfAbsent("avatar:" + avatarId, key -> {
-            Texture texture = shapes.fileOr(AvatarCatalog.imagePath(avatarId), () -> shapes.circle(64, Color.GRAY));
-            texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
-            return texture;
-        });
-    }
-
-    Color background() {
+    @Override
+    public Color background() {
         return BACKGROUND;
     }
 
@@ -163,6 +151,5 @@ public final class AccountFlow implements Disposable {
     @Override
     public void dispose() {
         nav.dispose();
-        shapes.dispose();
     }
 }

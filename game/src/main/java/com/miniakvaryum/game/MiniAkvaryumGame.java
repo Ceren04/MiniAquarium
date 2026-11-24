@@ -18,10 +18,11 @@ import com.miniakvaryum.domain.core.time.Clock;
 import com.miniakvaryum.domain.core.util.JavaRandomSource;
 import com.miniakvaryum.domain.core.util.UuidIdGenerator;
 import com.miniakvaryum.game.core.GameFeature;
+import com.miniakvaryum.game.core.PhotoSource;
 import com.miniakvaryum.game.core.UiContext;
 import com.miniakvaryum.game.core.account.AccountFlow;
-import com.miniakvaryum.game.core.account.AccountStrings;
-import com.miniakvaryum.game.core.account.SignOutConfirmScreen;
+import com.miniakvaryum.game.core.account.AccountPictures;
+import com.miniakvaryum.game.core.account.AccountScreens;
 import com.miniakvaryum.game.core.ui.MainScreen;
 import com.miniakvaryum.game.core.ui.Navigator;
 import com.miniakvaryum.game.core.ui.ShapeTextures;
@@ -49,6 +50,7 @@ public final class MiniAkvaryumGame extends Game {
 
     private final Clock clock;
     private final BootIdProvider bootIdProvider;
+    private final PhotoSource photoSource;
 
     private GameSession session;
     private Skin skin;
@@ -57,6 +59,8 @@ public final class MiniAkvaryumGame extends Game {
     private boolean restartRequested;
 
     private AccountService accounts;
+    /** Profile pictures; one instance for the whole life of the game. */
+    private AccountPictures pictures;
     /** The account whose game is running; null while the account screens are shown. */
     private Account account;
     /** The account screens; null while a game is running. */
@@ -66,8 +70,16 @@ public final class MiniAkvaryumGame extends Game {
     private boolean signOutRequested;
 
     public MiniAkvaryumGame(Clock clock, BootIdProvider bootIdProvider) {
+        this(clock, bootIdProvider, PhotoSource.NONE);
+    }
+
+    /**
+     * @param photoSource where profile photos come from (file window, later camera)
+     */
+    public MiniAkvaryumGame(Clock clock, BootIdProvider bootIdProvider, PhotoSource photoSource) {
         this.clock = Objects.requireNonNull(clock, "clock");
         this.bootIdProvider = Objects.requireNonNull(bootIdProvider, "bootIdProvider");
+        this.photoSource = Objects.requireNonNull(photoSource, "photoSource");
     }
 
     @Override
@@ -77,6 +89,7 @@ public final class MiniAkvaryumGame extends Game {
         accounts = new AccountService(new AccountStore(JsonFileSaveStore.defaultDirectory()),
                 new PasswordHasher(accountsConfig.pbkdf2Iterations()), clock, ZoneId.systemDefault(),
                 new UuidIdGenerator(), accountsConfig);
+        pictures = new AccountPictures(skin);
         Optional<Account> remembered = accounts.remembered();
         if (remembered.isPresent()) {
             startGame(remembered.get());
@@ -87,7 +100,7 @@ public final class MiniAkvaryumGame extends Game {
 
     /** Shows Welcome / Sign up / Sign in. */
     private void showAccountScreens() {
-        accountFlow = new AccountFlow(this, skin, accounts, signedIn -> accountToStart = signedIn);
+        accountFlow = new AccountFlow(this, skin, accounts, pictures, signedIn -> accountToStart = signedIn);
         accountFlow.start();
     }
 
@@ -140,14 +153,12 @@ public final class MiniAkvaryumGame extends Game {
 
         // 3. UI features: each one adds its screens, buttons and drawings.
         UiContext ui = new UiContext(session, skin, navigator, mainScreen, shapes, () -> restartRequested = true,
-                account, accounts.folderOf(account));
+                accounts, account.id(), pictures, () -> signOutRequested = true);
+        // Account screens used from the profile: edit, picture, safety color, sign-out question.
+        AccountScreens.register(ui, photoSource);
         for (GameFeature feature : GameFeatures.all()) {
             feature.install(ui);
         }
-        // Temporary: the profile screen (V12, step 4) will have the real "Sign out" button.
-        navigator.register(SignOutConfirmScreen.ID,
-                () -> new SignOutConfirmScreen(skin, () -> signOutRequested = true, navigator::showMain));
-        mainScreen.addButton(AccountStrings.SIGN_OUT, () -> navigator.show(SignOutConfirmScreen.ID));
 
         navigator.showMain();
     }
@@ -195,6 +206,9 @@ public final class MiniAkvaryumGame extends Game {
         }
         if (accountFlow != null) {
             accountFlow.dispose();
+        }
+        if (pictures != null) {
+            pictures.dispose();
         }
         if (skin != null) {
             skin.dispose();

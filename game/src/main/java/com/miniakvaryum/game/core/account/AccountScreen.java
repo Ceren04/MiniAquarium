@@ -6,14 +6,17 @@ import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
+import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.Stack;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.ui.TextField;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
+import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Scaling;
+import com.miniakvaryum.domain.core.account.Account;
 import com.miniakvaryum.domain.core.account.Picture;
 import com.miniakvaryum.domain.core.account.SafetyColor;
 import com.miniakvaryum.game.core.ui.BaseScreen;
@@ -21,7 +24,7 @@ import com.miniakvaryum.game.core.ui.UiConfig;
 import com.miniakvaryum.game.core.ui.UiSkin;
 import java.util.function.Consumer;
 
-/** Base of the account screens: shared widgets (fields, pictures, color circles). */
+/** Base of all account screens: shared widgets (fields, pictures, color circles). */
 abstract class AccountScreen extends BaseScreen {
 
     static final Color ERROR = new Color(1f, 0.72f, 0.45f, 1f);
@@ -30,6 +33,9 @@ abstract class AccountScreen extends BaseScreen {
     static final float FIELD_HEIGHT = 52f;
     static final float WIDE_BUTTON = 200f;
     private static final float DISABLED_ALPHA = 0.4f;
+    private static final float FIELD_PADDING = 12f;
+    /** Absolute font scale of small texts (the normal text is 1.6). */
+    private static final float SMALL_TEXT = 1.15f;
 
     /** Exact colors of the safety colors, in {@link SafetyColor} order. */
     private static final Color[] SAFETY = {
@@ -38,22 +44,26 @@ abstract class AccountScreen extends BaseScreen {
         Color.valueOf("8D6E63"), Color.valueOf("9E9E9E"),
     };
 
-    /** Circle colors for the first letter when no picture was chosen. */
-    private static final Color[] INITIAL_COLORS = {
-        Color.valueOf("FF9F2E"), Color.valueOf("8ACBEE"), Color.valueOf("F2B84B"), Color.valueOf("43A047"),
-        Color.valueOf("8E24AA"), Color.valueOf("F06292"),
-    };
+    protected final AccountUi ui;
 
-    protected final AccountFlow flow;
-
-    AccountScreen(AccountFlow flow) {
-        super(flow.skin());
-        this.flow = flow;
+    AccountScreen(AccountUi ui) {
+        super(ui.skin());
+        this.ui = ui;
     }
 
     @Override
     protected Color background() {
-        return flow.background();
+        return ui.background();
+    }
+
+    /** The skin's text field look with some space inside; used by every account screen. */
+    static TextField.TextFieldStyle paddedFieldStyle(Skin skin) {
+        TextField.TextFieldStyle style = new TextField.TextFieldStyle(skin.get(TextField.TextFieldStyle.class));
+        Drawable background = skin.newDrawable(UiSkin.WHITE, Color.WHITE);
+        background.setLeftWidth(FIELD_PADDING);
+        background.setRightWidth(FIELD_PADDING);
+        style.background = background;
+        return style;
     }
 
     // ---------------------------------------------------------------- texts
@@ -70,7 +80,7 @@ abstract class AccountScreen extends BaseScreen {
 
     Label small(String text, Color color) {
         Label label = new Label(text, skin);
-        label.setFontScale(0.9f);
+        label.setFontScale(SMALL_TEXT);
         label.setColor(color);
         return label;
     }
@@ -78,7 +88,7 @@ abstract class AccountScreen extends BaseScreen {
     // ---------------------------------------------------------------- inputs
 
     TextField field(int maxLength, boolean password, Runnable onChange) {
-        TextField field = new TextField("", flow.fieldStyle());
+        TextField field = new TextField("", ui.fieldStyle());
         field.setMaxLength(maxLength);
         if (password) {
             field.setPasswordCharacter('*');
@@ -144,25 +154,14 @@ abstract class AccountScreen extends BaseScreen {
 
     // ---------------------------------------------------------------- pictures
 
-    /** The picture of an account: an avatar image, or the first letter in a colored circle. */
+    /** A picture before the account exists (sign-up): avatar or first letter. */
     Actor picture(Picture picture, String firstName, float size) {
-        if (picture.kind() == Picture.Kind.AVATAR) {
-            Image image = new Image(flow.avatar(picture.avatarId()));
-            image.setScaling(Scaling.fit);
-            return image;
-        }
-        String name = firstName == null ? "" : firstName.trim();
-        String letter = name.isEmpty() ? "?" : name.substring(0, 1).toUpperCase(java.util.Locale.ROOT);
-        Color color = INITIAL_COLORS[Math.floorMod(name.hashCode(), INITIAL_COLORS.length)];
-        Image circle = new Image(flow.circle((int) size, color));
-        circle.setScaling(Scaling.fit);
-        Label label = new Label(letter, skin, UiSkin.TITLE);
-        label.setAlignment(Align.center);
-        label.setFontScale(size / 100f);
-        Stack stack = new Stack();
-        stack.add(circle);
-        stack.add(label);
-        return stack;
+        return ui.pictures().of(picture, firstName, null, size);
+    }
+
+    /** The picture of an existing account, its photo included. */
+    Actor picture(Account account, float size) {
+        return ui.pictures().of(account, ui.accounts().folderOf(account), size);
     }
 
     /** A clickable avatar or color circle with a selection ring. */
@@ -191,7 +190,7 @@ abstract class AccountScreen extends BaseScreen {
     }
 
     Image ring(int size) {
-        Image ring = new Image(flow.circle(size, Color.WHITE));
+        Image ring = new Image(ui.pictures().circle(size, Color.WHITE));
         ring.setScaling(Scaling.fit);
         return ring;
     }
@@ -202,7 +201,7 @@ abstract class AccountScreen extends BaseScreen {
         SafetyColor[] colors = SafetyColor.values();
         for (int i = 0; i < colors.length; i++) {
             SafetyColor color = colors[i];
-            Image circle = new Image(flow.circle(96, SAFETY[i]));
+            Image circle = new Image(ui.pictures().circle(96, SAFETY[i]));
             circle.setScaling(Scaling.fit);
             choices[i] = new Choice(ring(108), circle, () -> onPick.accept(color));
             Table cell = new Table();

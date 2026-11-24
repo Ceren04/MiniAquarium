@@ -38,6 +38,14 @@ public interface MainLayout {
     void addStatus(Supplier<String> text);
 
     /**
+     * Adds a widget to the top bar, after the status texts added so far, for example the energy
+     * bar. The widget follows the domain state in its own {@code act(delta)}.
+     *
+     * @param widget a Scene2D actor; its preferred size is used
+     */
+    void addStatusWidget(Actor widget);
+
+    /**
      * Adds a button to the top bar.
      *
      * @return the button, in case the feature wants to change its label later

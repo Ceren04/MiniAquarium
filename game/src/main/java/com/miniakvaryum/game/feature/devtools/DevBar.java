@@ -4,6 +4,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.math.Rectangle;
+import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
@@ -68,13 +69,24 @@ final class DevBar extends Group {
     }
 
     /** Adds a button to the right of the previous one. */
-    void addButton(String text, float width, Runnable action) {
+    TextButton addButton(String text, float width, Runnable action) {
         TextButton button = new TextButton(text, skin);
         button.setBounds(nextButtonX, BUTTON_Y, width, BUTTON_HEIGHT);
         button.setTouchable(Touchable.disabled);
         panel.addActor(button);
         buttons.add(new Button(new Rectangle(nextButtonX, BUTTON_Y, width, BUTTON_HEIGHT), action));
         nextButtonX += width + GAP;
+        return button;
+    }
+
+    /** Adds something that is shown and hidden together with the bar, like the date picker. */
+    void addToPanel(Actor actor) {
+        panel.addActor(actor);
+    }
+
+    /** True while the bar is visible. */
+    boolean isShown() {
+        return panel.isVisible();
     }
 
     /** Shows or hides the bar. */

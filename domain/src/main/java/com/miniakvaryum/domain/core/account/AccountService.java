@@ -42,6 +42,8 @@ public final class AccountService {
     private final AccountsConfig config;
 
     private AccountStore.Data data;
+    /** Developer tools only: a pretend date, or null for the real one. */
+    private LocalDate pretendToday;
 
     /**
      * @param store  where the accounts are kept
@@ -90,9 +92,28 @@ public final class AccountService {
         return store.folderOf(account.id());
     }
 
-    /** Today's date on this device. */
+    /** Today's date on this device, or the pretend date of the developer tools. */
     public LocalDate today() {
+        if (pretendToday != null) {
+            return pretendToday;
+        }
         return LocalDate.ofInstant(Instant.ofEpochMilli(clock.wallMillis()), zone);
+    }
+
+    /**
+     * Developer tools only: makes {@link #today()} return the given day, for example to see the
+     * birthday on the profile. Locks still use the real clock. Nothing is saved; the real date is
+     * back when the app starts again.
+     *
+     * @param day the pretend date, or null for the real date
+     */
+    public void setTodayForDevelopment(LocalDate day) {
+        pretendToday = day;
+    }
+
+    /** True while the developer tools pretend another date. */
+    public boolean isTodayPretended() {
+        return pretendToday != null;
     }
 
     /** Age in full years on the given day. */
@@ -247,6 +268,75 @@ public final class AccountService {
             return Optional.of(SignUpProblem.PASSWORDS_DIFFER);
         }
         return Optional.empty();
+    }
+
+    // ---------------------------------------------------------------- profile edits
+
+    /**
+     * Changes first and last name.
+     *
+     * @return {@code OK}, or {@code INVALID} if a name is empty or too long (nothing changed)
+     */
+    public EditResult changeNames(String accountId, String firstName, String lastName) {
+        Account account = require(accountId);
+        if (!validName(firstName) || !validName(lastName)) {
+            return EditResult.INVALID;
+        }
+        replace(account.withNames(firstName.trim(), lastName.trim()));
+        return EditResult.OK;
+    }
+
+    /** Changes the profile picture. For a photo, the game writes {@code photo.png} into {@link #folderOf} first. */
+    public void changePicture(String accountId, Picture picture) {
+        Objects.requireNonNull(picture, "picture");
+        replace(require(accountId).withPicture(picture));
+    }
+
+    /**
+     * Changes the password; the current password must be given.
+     *
+     * @return {@code OK}, {@code WRONG_PASSWORD}, or {@code INVALID} if the new password breaks
+     *         the rules or the two entries differ
+     */
+    public EditResult changePassword(String accountId, String currentPassword, String newPassword,
+            String repeatPassword) {
+        Account account = require(accountId);
+        if (!hasher.matches(account.password(), currentPassword == null ? "" : currentPassword)) {
+            return EditResult.WRONG_PASSWORD;
+        }
+        if (passwordProblem(newPassword, repeatPassword).isPresent()) {
+            return EditResult.INVALID;
+        }
+        replace(account.withPassword(hasher.hash(newPassword)));
+        return EditResult.OK;
+    }
+
+    /**
+     * Changes the safety color; the current password must be given.
+     *
+     * @return {@code OK}, {@code WRONG_PASSWORD}, or {@code INVALID} if no color is given
+     */
+    public EditResult changeSafetyColor(String accountId, String currentPassword, SafetyColor color) {
+        Account account = require(accountId);
+        if (!hasher.matches(account.password(), currentPassword == null ? "" : currentPassword)) {
+            return EditResult.WRONG_PASSWORD;
+        }
+        if (color == null) {
+            return EditResult.INVALID;
+        }
+        replace(account.withSafetyColor(hasher.hash(color.name())).withSafety(Lockout.NONE));
+        return EditResult.OK;
+    }
+
+    /**
+     * Returns true on the birthday. Someone born on 29 February celebrates on 28 February in
+     * years without a 29 February.
+     */
+    public static boolean isBirthday(LocalDate birthday, LocalDate day) {
+        if (birthday.getMonthValue() == 2 && birthday.getDayOfMonth() == 29 && !day.isLeapYear()) {
+            return day.getMonthValue() == 2 && day.getDayOfMonth() == 28;
+        }
+        return birthday.getMonthValue() == day.getMonthValue() && birthday.getDayOfMonth() == day.getDayOfMonth();
     }
 
     // ---------------------------------------------------------------- remember me

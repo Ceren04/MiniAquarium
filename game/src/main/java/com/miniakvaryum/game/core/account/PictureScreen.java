@@ -12,7 +12,7 @@ import java.util.List;
  * Sign-up step 3: a big preview on the left, the avatar rows on the right, and "Skip" (first
  * letter instead of a picture). Camera and gallery come with the profile step.
  */
-final class PictureScreen extends AccountScreen {
+final class PictureScreen extends FlowScreen {
 
     private static final float PREVIEW = 220f;
     private static final float AVATAR = 96f;

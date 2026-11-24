@@ -324,4 +324,69 @@ class AccountServiceTest {
         assertThat(AccountService.ageOn(LocalDate.of(2017, 5, 3), LocalDate.of(2026, 5, 3))).isEqualTo(9);
         assertThat(service.config()).isEqualTo(CONFIG);
     }
+
+    // ---------------------------------------------------------------- profile edits
+
+    @Test
+    void namesCanBeChanged() {
+        Account elif = service.create(draft("elif"));
+        assertThat(service.changeNames(elif.id(), " Elif Su ", "Kaya")).isEqualTo(EditResult.OK);
+        assertThat(newService().find(elif.id()).orElseThrow().firstName()).isEqualTo("Elif Su");
+        assertThat(service.changeNames(elif.id(), "", "Kaya")).isEqualTo(EditResult.INVALID);
+        assertThat(service.find(elif.id()).orElseThrow().lastName()).isEqualTo("Kaya");
+    }
+
+    @Test
+    void pictureCanBeChanged() {
+        Account elif = service.create(draft("elif"));
+        service.changePicture(elif.id(), new Picture(Picture.Kind.PHOTO, ""));
+        assertThat(newService().find(elif.id()).orElseThrow().picture().kind()).isEqualTo(Picture.Kind.PHOTO);
+    }
+
+    @Test
+    void passwordChangeNeedsTheCurrentPassword() {
+        Account elif = service.create(draft("elif"));
+        assertThat(service.changePassword(elif.id(), "wrong1", "corals9", "corals9")).isEqualTo(EditResult.WRONG_PASSWORD);
+        assertThat(service.changePassword(elif.id(), "fishes1", "short", "short")).isEqualTo(EditResult.INVALID);
+        assertThat(service.changePassword(elif.id(), "fishes1", "corals9", "corals9")).isEqualTo(EditResult.OK);
+        assertThat(service.signIn("elif", "corals9").status()).isEqualTo(SignInResult.Status.OK);
+    }
+
+    @Test
+    void safetyColorChangeNeedsTheCurrentPassword() {
+        Account elif = service.create(draft("elif"));
+        assertThat(service.changeSafetyColor(elif.id(), "wrong1", SafetyColor.RED)).isEqualTo(EditResult.WRONG_PASSWORD);
+        assertThat(service.changeSafetyColor(elif.id(), "fishes1", null)).isEqualTo(EditResult.INVALID);
+        assertThat(service.changeSafetyColor(elif.id(), "fishes1", SafetyColor.RED)).isEqualTo(EditResult.OK);
+        assertThat(service.checkSafetyColor(elif.id(), SafetyColor.RED).status()).isEqualTo(ResetResult.Status.OK);
+        assertThat(service.checkSafetyColor(elif.id(), SafetyColor.BLUE).status()).isEqualTo(ResetResult.Status.WRONG_COLOR);
+    }
+
+    // ---------------------------------------------------------------- 8. birthday
+
+    @Test
+    void birthdayIncludingTheTwentyNinthOfFebruary() {
+        LocalDate may3 = LocalDate.of(2017, 5, 3);
+        assertThat(AccountService.isBirthday(may3, LocalDate.of(2026, 5, 3))).isTrue();
+        assertThat(AccountService.isBirthday(may3, LocalDate.of(2026, 5, 4))).isFalse();
+        LocalDate leap = LocalDate.of(2016, 2, 29);
+        assertThat(AccountService.isBirthday(leap, LocalDate.of(2027, 2, 28))).isTrue();
+        assertThat(AccountService.isBirthday(leap, LocalDate.of(2027, 3, 1))).isFalse();
+        assertThat(AccountService.isBirthday(leap, LocalDate.of(2028, 2, 28))).isFalse();
+        assertThat(AccountService.isBirthday(leap, LocalDate.of(2028, 2, 29))).isTrue();
+    }
+
+    @Test
+    void developerToolsCanPretendAnotherDate() {
+        LocalDate real = service.today();
+        assertThat(service.isTodayPretended()).isFalse();
+
+        service.setTodayForDevelopment(LocalDate.of(2027, 5, 3));
+        assertThat(service.today()).isEqualTo(LocalDate.of(2027, 5, 3));
+        assertThat(service.isTodayPretended()).isTrue();
+
+        service.setTodayForDevelopment(null);
+        assertThat(service.today()).isEqualTo(real);
+        assertThat(service.isTodayPretended()).isFalse();
+    }
 }

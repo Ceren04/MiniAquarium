@@ -16,7 +16,7 @@ import java.util.Optional;
  * "Forgot password?" in three steps on one screen: pick the account, pick the safety color,
  * type a new password twice. A right color opens the account's aquarium after saving.
  */
-final class ForgotPasswordScreen extends AccountScreen {
+final class ForgotPasswordScreen extends FlowScreen {
 
     private static final float PICTURE = 96f;
 
@@ -113,7 +113,7 @@ final class ForgotPasswordScreen extends AccountScreen {
                 heading.setText(AccountStrings.WHAT_COLOR);
                 select(colors, -1);
                 Table who = new Table();
-                who.add(picture(account.picture(), account.firstName(), 56)).size(56).padRight(UiConfig.GAP);
+                who.add(picture(account, 56)).size(56).padRight(UiConfig.GAP);
                 who.add(text(account.username()));
                 body.add(who).padBottom(UiConfig.GAP * 2).row();
                 body.add(colorStep);
@@ -134,7 +134,7 @@ final class ForgotPasswordScreen extends AccountScreen {
         accountRow.clearChildren();
         for (Account each : flow.accounts().all()) {
             Table cell = new Table();
-            cell.add(new Choice(ring((int) PICTURE + 8), picture(each.picture(), each.firstName(), PICTURE), () -> {
+            cell.add(new Choice(ring((int) PICTURE + 8), picture(each, PICTURE), () -> {
                 account = each;
                 show(Step.COLOR);
             })).size(PICTURE + 8).row();

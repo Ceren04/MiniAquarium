@@ -41,6 +41,21 @@ public record Account(String id, String username, String firstName, String lastN
                 signIn, safety, createdAtMillis);
     }
 
+    Account withNames(String newFirstName, String newLastName) {
+        return new Account(id, username, newFirstName, newLastName, birthday, password, safetyColor, picture,
+                signIn, safety, createdAtMillis);
+    }
+
+    Account withPicture(Picture newPicture) {
+        return new Account(id, username, firstName, lastName, birthday, password, safetyColor, newPicture,
+                signIn, safety, createdAtMillis);
+    }
+
+    Account withSafetyColor(Secret newSafetyColor) {
+        return new Account(id, username, firstName, lastName, birthday, password, newSafetyColor, picture,
+                signIn, safety, createdAtMillis);
+    }
+
     Account withSignIn(Lockout newSignIn) {
         return new Account(id, username, firstName, lastName, birthday, password, safetyColor, picture,
                 newSignIn, safety, createdAtMillis);

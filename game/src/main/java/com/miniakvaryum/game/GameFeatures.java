@@ -5,6 +5,7 @@ import com.miniakvaryum.game.feature.aquarium.AquariumGameFeature;
 import com.miniakvaryum.game.feature.devtools.DevToolsGameFeature;
 import com.miniakvaryum.game.feature.dirt.DirtGameFeature;
 import com.miniakvaryum.game.feature.economy.EconomyGameFeature;
+import com.miniakvaryum.game.feature.profile.ProfileGameFeature;
 import com.miniakvaryum.game.feature.security.SecurityGameFeature;
 import com.miniakvaryum.game.feature.tasks.TasksGameFeature;
 import java.util.List;
@@ -25,6 +26,7 @@ public final class GameFeatures {
     /** Creates a fresh instance of every UI feature. */
     public static List<GameFeature> all() {
         return List.of(
+                new ProfileGameFeature(),       // first: the picture is the leftmost item of the top bar
                 new EconomyGameFeature(),
                 new DevToolsGameFeature(),
                 new AquariumGameFeature(),

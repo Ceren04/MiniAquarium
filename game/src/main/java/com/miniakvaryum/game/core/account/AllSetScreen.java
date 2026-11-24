@@ -12,7 +12,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /** Sign-up step 4: greeting, picture, "Remember me" and "Start", which creates the account. */
-final class AllSetScreen extends AccountScreen {
+final class AllSetScreen extends FlowScreen {
 
     private static final Logger LOG = Logger.getLogger(AllSetScreen.class.getName());
     private static final float PICTURE = 180f;

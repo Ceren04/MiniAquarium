@@ -185,6 +185,11 @@ public final class MainScreen extends BaseScreen implements MainLayout {
     }
 
     @Override
+    public void addStatusWidget(Actor widget) {
+        statusCells.add(widget).padRight(UiConfig.GAP * 3);
+    }
+
+    @Override
     public TextButton addButton(String label, Runnable onClick) {
         TextButton button = button(label, onClick);
         buttonCells.add(button).minSize(UiConfig.MIN_TOUCH_SIZE).padLeft(UiConfig.GAP);

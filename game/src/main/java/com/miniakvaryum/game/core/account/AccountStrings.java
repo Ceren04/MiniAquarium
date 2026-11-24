@@ -73,11 +73,35 @@ public final class AccountStrings {
     static final String NEW_PASSWORD = "New password";
     static final String SAVE = "Save";
 
-    /** Temporary button on the main screen until the profile screen has "Sign out". */
+    /** Button on the profile screen. */
     public static final String SIGN_OUT = "Sign out";
     static final String SIGN_OUT_QUESTION = "Do you really want to sign out?";
     static final String YES_SIGN_OUT = "Yes, sign out";
     static final String NO = "No";
+
+    // Edit profile
+    static final String EDIT_PROFILE = "Edit profile";
+    static final String CHANGE_PICTURE = "Change picture";
+    static final String SAVE_NAMES = "Save names";
+    static final String NAMES_SAVED = "Names saved";
+    static final String CURRENT_PASSWORD = "Current password";
+    static final String CHANGE_PASSWORD = "Change password";
+    static final String PASSWORD_CHANGED = "Password changed";
+    static final String WRONG_PASSWORD = "Wrong password";
+    static final String CHANGE_SAFETY_COLOR = "Change safety color";
+    static final String PICK_NEW_COLOR = "Type your password and pick your new color.";
+    static final String NOT_CHANGEABLE = "Username @%s and birthday %s cannot be changed.";
+    static final String DONE = "Done";
+
+    // Picture chooser
+    static final String CHOOSE_FROM_GALLERY = "Choose from gallery";
+    static final String USE_FIRST_LETTER = "Use first letter";
+    static final String PHOTO_FAILED = "This picture could not be opened.";
+
+    // Adjust photo
+    static final String ADJUST_TITLE = "Adjust your photo";
+    static final String ADJUST_TEXT = "Drag the photo, zoom with + and - (or the mouse wheel).";
+    static final String USE_PHOTO = "Use photo";
 
     private AccountStrings() {
     }

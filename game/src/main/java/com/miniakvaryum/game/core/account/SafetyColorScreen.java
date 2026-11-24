@@ -6,7 +6,7 @@ import com.miniakvaryum.domain.core.account.SafetyColor;
 import com.miniakvaryum.game.core.ui.UiConfig;
 
 /** Sign-up step 2: the child picks a favorite color, asked again after "Forgot password?". */
-final class SafetyColorScreen extends AccountScreen {
+final class SafetyColorScreen extends FlowScreen {
 
     private final Choice[] choices = new Choice[SafetyColor.values().length];
     private final TextButton next;

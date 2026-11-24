@@ -4,6 +4,7 @@ import com.miniakvaryum.domain.feature.aquarium.api.world.AquariumWorld;
 import com.miniakvaryum.domain.feature.economy.api.Currency;
 import com.miniakvaryum.domain.feature.economy.api.TxResult;
 import com.miniakvaryum.domain.feature.economy.api.Wallet;
+import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.miniakvaryum.game.core.GameFeature;
 import com.miniakvaryum.game.core.UiContext;
 import java.io.UncheckedIOException;
@@ -22,6 +23,8 @@ import java.util.logging.Logger;
  *   <li><b>+1 h, +6 h, +24 h</b>: the game restarts as if it had been closed that long
  *       ({@link TimeTravel}). The bar stays open and shows how far the game is ahead.</li>
  *   <li><b>Undo time</b>: back to the moment before the first jump.</li>
+ *   <li><b>Date</b>: opens the {@link DatePicker} to pretend another date, for example the
+ *       child's birthday. The button then shows the pretend date.</li>
  * </ul>
  *
  * <p>Register this feature in {@code GameFeatures} <b>before</b> the aquarium feature: in feed
@@ -58,11 +61,16 @@ public final class DevToolsGameFeature implements GameFeature {
         bar.addButton(DevToolsStrings.JUMP_6H, NARROW_BUTTON, () -> jump(ui, time, 6 * HOUR));
         bar.addButton(DevToolsStrings.JUMP_24H, NARROW_BUTTON, () -> jump(ui, time, 24 * HOUR));
         bar.addButton(DevToolsStrings.UNDO_TIME, WIDE_BUTTON, () -> undo(ui, time));
+        DatePicker picker = new DatePicker(ui.skin(), worldWidth, ui.accounts(), () -> ui.account().birthday());
+        TextButton date = bar.addButton(DevToolsStrings.DATE, NARROW_BUTTON, picker::toggle);
+        picker.setOnChange(() -> date.setText(picker.buttonText()));
+        bar.addToPanel(picker);
         // After a jump the game was rebuilt; keep the bar open so the result can be seen.
         bar.setShown(time.hasCheckpoint());
 
         ui.main().addWorldLayer(BAR_LAYER_Z, bar);
-        ui.main().addWorldTapHandler((x, y) -> bar.handleTap((float) x, (float) y));
+        ui.main().addWorldTapHandler((x, y) -> bar.isShown() && picker.handleTap((float) x, (float) y)
+                || bar.handleTap((float) x, (float) y));
     }
 
     private void addFood(UiContext ui, Wallet wallet) {

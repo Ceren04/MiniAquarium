@@ -21,7 +21,7 @@ import java.util.Set;
  * disabled until all fields are valid. The birthday is picked with arrow buttons, so no
  * keyboard is needed for it.
  */
-final class AboutYouScreen extends AccountScreen {
+final class AboutYouScreen extends FlowScreen {
 
     private static final int MONTHS = 12;
 

@@ -3,6 +3,8 @@ package com.miniakvaryum.game.core.ui;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.utils.Disposable;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -26,6 +28,10 @@ public final class Navigator implements Disposable {
     private final Game game;
     private final Map<String, Supplier<? extends Screen>> factories = new HashMap<>();
     private final Map<String, Screen> created = new HashMap<>();
+
+    /** Screens shown before the current one, most recent first. */
+    private final Deque<String> history = new ArrayDeque<>();
+    private String current;
 
     public Navigator(Game game) {
         this.game = Objects.requireNonNull(game, "game");
@@ -56,11 +62,27 @@ public final class Navigator implements Disposable {
             throw new IllegalArgumentException("No screen with id '" + id + "' is registered. "
                     + "Is the feature that provides it listed in GameFeatures?");
         }
+        if (current != null && !current.equals(id)) {
+            history.push(current);
+        }
+        current = id;
         game.setScreen(created.computeIfAbsent(id, key -> factory.get()));
+    }
+
+    /**
+     * Goes back to the screen shown before the current one, for example from "Edit profile"
+     * back to the profile; the main screen if there is none.
+     */
+    public void back() {
+        String previous = history.isEmpty() ? MAIN : history.pop();
+        current = null;
+        show(previous);
     }
 
     /** Switches to the main screen. */
     public void showMain() {
+        history.clear();
+        current = null;
         show(MAIN);
     }
 

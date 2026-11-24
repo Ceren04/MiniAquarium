@@ -6,7 +6,7 @@ import com.miniakvaryum.game.core.CoreStrings;
 import com.miniakvaryum.game.core.ui.UiConfig;
 
 /** First screen without a remembered account: "Sign up" and "Sign in". */
-final class WelcomeScreen extends AccountScreen {
+final class WelcomeScreen extends FlowScreen {
 
     private final TextButton signIn;
 

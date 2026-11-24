@@ -7,8 +7,10 @@ import com.miniakvaryum.domain.feature.dirt.DirtConfig;
 import com.miniakvaryum.domain.feature.dirt.DirtFeature;
 import com.miniakvaryum.domain.feature.economy.EconomyConfig;
 import com.miniakvaryum.domain.feature.economy.EconomyFeature;
+import com.miniakvaryum.domain.feature.profile.ProfileFeature;
 import com.miniakvaryum.domain.feature.security.SecurityConfig;
 import com.miniakvaryum.domain.feature.security.SecurityFeature;
+import com.miniakvaryum.domain.feature.stats.StatsFeature;
 import com.miniakvaryum.domain.feature.tasks.TasksConfig;
 import com.miniakvaryum.domain.feature.tasks.TasksFeature;
 import java.util.List;
@@ -32,7 +34,9 @@ public final class DomainFeatures {
                 new SecurityFeature(SecurityConfig.defaults()),
                 new TasksFeature(TasksConfig.defaults()),       // needs economy, security
                 new AquariumFeature(AquariumConfig.defaults()), // needs economy
-                new DirtFeature(DirtConfig.defaults())
+                new DirtFeature(DirtConfig.defaults()),
+                new ProfileFeature(),                            // needs aquarium
+                new StatsFeature()                               // needs economy, tasks, aquarium
         );
     }
 }

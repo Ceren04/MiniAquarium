@@ -16,7 +16,7 @@ import com.miniakvaryum.game.core.ui.UiConfig;
  * Sign in: the accounts of this device as pictures (a tap fills in the username), username,
  * password, "Remember me", and "Forgot password?".
  */
-final class SignInScreen extends AccountScreen {
+final class SignInScreen extends FlowScreen {
 
     private static final float PICTURE = 84f;
 
@@ -84,7 +84,7 @@ final class SignInScreen extends AccountScreen {
         accountRow.clearChildren();
         for (Account account : flow.accounts().all()) {
             Table cell = new Table();
-            Choice choice = new Choice(ring((int) PICTURE + 8), picture(account.picture(), account.firstName(), PICTURE),
+            Choice choice = new Choice(ring((int) PICTURE + 8), picture(account, PICTURE),
                     () -> {
                         username.setText(account.username());
                         password.setText("");

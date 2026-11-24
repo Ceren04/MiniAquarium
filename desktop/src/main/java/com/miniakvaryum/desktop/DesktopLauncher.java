@@ -24,7 +24,8 @@ public final class DesktopLauncher {
         config.useVsync(true);
         config.setForegroundFPS(60);
 
-        MiniAkvaryumGame game = new MiniAkvaryumGame(new SystemClock(), new DesktopBootIdProvider());
+        MiniAkvaryumGame game = new MiniAkvaryumGame(new SystemClock(), new DesktopBootIdProvider(),
+                new DesktopPhotoSource());
         // Blocks until the window is closed.
         new Lwjgl3Application(game, config);
     }
