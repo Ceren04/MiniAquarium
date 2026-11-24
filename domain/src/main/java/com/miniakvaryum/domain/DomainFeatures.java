@@ -7,6 +7,9 @@ import com.miniakvaryum.domain.feature.dirt.DirtConfig;
 import com.miniakvaryum.domain.feature.dirt.DirtFeature;
 import com.miniakvaryum.domain.feature.economy.EconomyConfig;
 import com.miniakvaryum.domain.feature.economy.EconomyFeature;
+import com.miniakvaryum.domain.feature.energy.EnergyConfig;
+import com.miniakvaryum.domain.feature.energy.EnergyFeature;
+import com.miniakvaryum.domain.feature.energy.FishLevels;
 import com.miniakvaryum.domain.feature.profile.ProfileFeature;
 import com.miniakvaryum.domain.feature.security.SecurityConfig;
 import com.miniakvaryum.domain.feature.security.SecurityFeature;
@@ -34,6 +37,8 @@ public final class DomainFeatures {
                 new SecurityFeature(SecurityConfig.defaults()),
                 new TasksFeature(TasksConfig.defaults()),       // needs economy, security
                 new AquariumFeature(AquariumConfig.defaults()), // needs economy
+                // Needs the aquarium. Fish levels do not exist yet (D-030): every fish counts as level 1.
+                new EnergyFeature(EnergyConfig.defaults(), FishLevels.ALL_LEVEL_ONE),
                 new DirtFeature(DirtConfig.defaults()),
                 new ProfileFeature(),                            // needs aquarium
                 new StatsFeature()                               // needs economy, tasks, aquarium
