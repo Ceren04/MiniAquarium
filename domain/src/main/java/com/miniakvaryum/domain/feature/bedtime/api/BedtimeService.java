@@ -117,6 +117,18 @@ public final class BedtimeService {
         }
     }
 
+    /**
+     * Developer tools only: forgets that tonight's and today's greetings were shown and makes the
+     * next {@link #checkTransition()} publish the event that fits the current time, so the
+     * matching banner appears at once after the dev clock was moved (21:00 or 07:00).
+     */
+    public void replayGreetingForDevelopment() {
+        goodnightShownFor = null;
+        goodMorningShownFor = null;
+        wasBedtime = !isBedtime();
+        onChange.run();
+    }
+
     /** For the save. */
     public Optional<LocalDate> goodnightShownFor() {
         return Optional.ofNullable(goodnightShownFor);

@@ -4,10 +4,10 @@ import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.miniakvaryum.domain.core.time.AdjustableLocalClock;
 import com.miniakvaryum.domain.core.time.LocalClock;
 import com.miniakvaryum.domain.feature.aquarium.api.world.AquariumWorld;
+import com.miniakvaryum.domain.feature.bedtime.api.BedtimeService;
 import com.miniakvaryum.domain.feature.economy.api.Currency;
 import com.miniakvaryum.domain.feature.economy.api.TxResult;
 import com.miniakvaryum.domain.feature.economy.api.Wallet;
-import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.miniakvaryum.domain.feature.energy.api.EnergyService;
 import com.miniakvaryum.game.core.GameFeature;
 import com.miniakvaryum.game.core.UiContext;
@@ -32,7 +32,7 @@ import java.util.logging.Logger;
  *       limit (for example "E: 0", then "+1 h": the bar shows 10).</li>
  *   <li><b>Date</b>: opens the {@link DatePicker} to pretend another date, for example the
  *       child's birthday. The button then shows the pretend date.</li>
- *   <li><b>Clock</b>: real time, 20:59, 06:59: shifts only the game's local clock to try
+ *   <li><b>Clock</b>: real time, 21:00, 07:00: shifts only the game's local clock to try
  *       bedtime (TC-9) without touching the device clock.</li>
  * </ul>
  *
@@ -56,8 +56,8 @@ public final class DevToolsGameFeature implements GameFeature {
     private static final long HOUR = 3_600_000L;
     private static final long MINUTE = 60_000L;
     private static final float CLOCK_BUTTON = 150f;
-    private static final LocalTime BEFORE_BEDTIME = LocalTime.of(20, 59);
-    private static final LocalTime BEFORE_MORNING = LocalTime.of(6, 59);
+    private static final LocalTime BEDTIME_STARTS = LocalTime.of(21, 0);
+    private static final LocalTime MORNING = LocalTime.of(7, 0);
     private static final int NOON = 12;
 
     @Override
@@ -85,7 +85,7 @@ public final class DevToolsGameFeature implements GameFeature {
         picker.setOnChange(() -> date.setText(picker.buttonText()));
         bar.addToPanel(picker);
         if (ui.session().get(LocalClock.class) instanceof AdjustableLocalClock clock) {
-            addClockButton(bar, clock);
+            addClockButton(bar, clock, ui.session().get(BedtimeService.class));
         }
         // After a jump the game was rebuilt; keep the bar open so the result can be seen.
         bar.setShown(time.hasCheckpoint());
@@ -96,18 +96,21 @@ public final class DevToolsGameFeature implements GameFeature {
     }
 
     /**
-     * One button that cycles the local clock: real time, 20:59 (one minute before bedtime),
-     * 06:59 (one minute before morning), real time again. Only the game's clock moves, never the
-     * device clock; the shift is not saved, but it survives the restarts of the time travel.
+     * One button that cycles the local clock: real time, 21:00 (bedtime starts), 07:00 (morning),
+     * real time again. At 21:00 and 07:00 the matching banner appears at once, also when it was
+     * already shown today. Only the game's clock moves, never the device clock; the shift is not
+     * saved, but it survives the restarts of the time travel.
      */
-    private void addClockButton(DevBar bar, AdjustableLocalClock clock) {
+    private void addClockButton(DevBar bar, AdjustableLocalClock clock, BedtimeService bedtime) {
         TextButton[] button = new TextButton[1];
         String start = clock.isShifted() ? DevToolsStrings.CLOCK_SHIFTED : DevToolsStrings.CLOCK_REAL;
         button[0] = bar.addButton(start, CLOCK_BUTTON, () -> {
             if (!clock.isShifted()) {
-                shiftTo(clock, button[0], BEFORE_BEDTIME);
+                shiftTo(clock, button[0], BEDTIME_STARTS);
+                bedtime.replayGreetingForDevelopment();
             } else if (clock.now().getHour() >= NOON) {
-                shiftTo(clock, button[0], BEFORE_MORNING);
+                shiftTo(clock, button[0], MORNING);
+                bedtime.replayGreetingForDevelopment();
             } else {
                 clock.resetForDevelopment();
                 button[0].setText(DevToolsStrings.CLOCK_REAL);

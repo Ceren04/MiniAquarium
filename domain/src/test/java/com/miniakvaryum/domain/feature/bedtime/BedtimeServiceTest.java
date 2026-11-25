@@ -164,4 +164,26 @@ class BedtimeServiceTest {
     void localDateTimeHelperIsStable() {
         assertThat(clock.now()).isEqualTo(LocalDateTime.of(2026, 11, 24, 15, 0));
     }
+
+    @Test
+    void developerReplayShowsTheGreetingAgainAtOnce() {
+        clock.set(DAY.atTime(21, 0));
+        BedtimeService bedtime = service();
+        assertThat(bedtime.consumeGoodnight()).isTrue();
+        bedtime.checkTransition();
+        assertThat(published).isEmpty();
+
+        bedtime.replayGreetingForDevelopment();
+        bedtime.checkTransition();
+        assertThat(published).hasSize(1).first().isInstanceOf(BedtimeStarted.class);
+        assertThat(bedtime.consumeGoodnight()).isTrue();
+
+        clock.set(DAY.plusDays(1).atTime(7, 0));
+        bedtime.checkTransition();
+        assertThat(bedtime.consumeGoodMorning()).isTrue();
+        bedtime.replayGreetingForDevelopment();
+        bedtime.checkTransition();
+        assertThat(published).hasSize(3).last().isInstanceOf(BedtimeEnded.class);
+        assertThat(bedtime.consumeGoodMorning()).isTrue();
+    }
 }
