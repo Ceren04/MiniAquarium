@@ -61,12 +61,14 @@ public final class StatsService {
     }
 
     /**
-     * Counts the day the game is played on; the same day counts once. The game calls this when a
-     * session starts, with the local date of the device.
+     * Counts the day the game is played on. Only a day after the last counted day counts: the
+     * same day counts once, and an earlier day (the device clock was set back, or moved back and
+     * forth) counts nothing, so turning the clock cannot pump the number up. The game calls this
+     * when a session starts and while it runs (midnight), with the real local date of the device.
      */
     public void dayPlayed(LocalDate today) {
         Objects.requireNonNull(today, "today");
-        if (!today.equals(lastDayPlayed)) {
+        if (lastDayPlayed == null || today.isAfter(lastDayPlayed)) {
             lastDayPlayed = today;
             daysPlayed++;
             onChange.run();

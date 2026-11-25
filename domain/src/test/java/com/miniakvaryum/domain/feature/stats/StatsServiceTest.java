@@ -77,4 +77,23 @@ class StatsServiceTest {
         restarted.dayPlayed(LocalDate.of(2026, 11, 24));
         assertThat(restarted.snapshot().daysPlayed()).isEqualTo(1);
     }
+
+    @Test
+    void anEarlierDayCountsNothingSoTurningTheClockDoesNotHelp() {
+        StatsService stats = game.startFullGame().get(StatsService.class);
+        LocalDate day = LocalDate.of(2026, 11, 24);
+        stats.dayPlayed(day);
+        stats.dayPlayed(day.minusDays(1));        // clock set back
+        stats.dayPlayed(day);
+        stats.dayPlayed(day.minusDays(1));        // back and forth
+        stats.dayPlayed(day);
+        assertThat(stats.snapshot().daysPlayed()).isEqualTo(1);
+
+        stats.dayPlayed(day.plusDays(10));       // clock set forward: counts once
+        stats.dayPlayed(day.plusDays(1));        // real date again: waits until after day + 10
+        stats.dayPlayed(day.plusDays(5));
+        assertThat(stats.snapshot().daysPlayed()).isEqualTo(2);
+        stats.dayPlayed(day.plusDays(11));
+        assertThat(stats.snapshot().daysPlayed()).isEqualTo(3);
+    }
 }

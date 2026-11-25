@@ -383,6 +383,7 @@ class AccountServiceTest {
 
         service.setTodayForDevelopment(LocalDate.of(2027, 5, 3));
         assertThat(service.today()).isEqualTo(LocalDate.of(2027, 5, 3));
+        assertThat(service.realToday()).isEqualTo(real);
         assertThat(service.isTodayPretended()).isTrue();
 
         service.setTodayForDevelopment(null);

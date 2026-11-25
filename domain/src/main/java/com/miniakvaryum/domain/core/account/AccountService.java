@@ -97,6 +97,11 @@ public final class AccountService {
         if (pretendToday != null) {
             return pretendToday;
         }
+        return realToday();
+    }
+
+    /** Today's date on this device; the pretend date of the developer tools does not change it. */
+    public LocalDate realToday() {
         return LocalDate.ofInstant(Instant.ofEpochMilli(clock.wallMillis()), zone);
     }
 

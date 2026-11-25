@@ -28,8 +28,10 @@ public final class ProfileGameFeature implements GameFeature {
     public void install(UiContext ui) {
         ui.nav().register(ProfileScreen.ID, () -> new ProfileScreen(ui));
         Texture frame = ui.shapes().fileOr(BirthdayFrame.SMALL_FILE, () -> null);
-        ui.main().addStatusWidget(new ProfileButton(ui, frame));
-        ui.session().get(StatsService.class).dayPlayed(ui.accounts().today());
+        StatsService stats = ui.session().get(StatsService.class);
+        // Days played use the real date, never the developer date picker (D-055).
+        stats.dayPlayed(ui.accounts().realToday());
+        ui.main().addStatusWidget(new ProfileButton(ui, frame, stats));
     }
 
     /**
@@ -39,18 +41,23 @@ public final class ProfileGameFeature implements GameFeature {
     private static final class ProfileButton extends Container<Actor> {
         private static final float SIZE = 56f;
         private static final float BIRTHDAY_SIZE = 44f;
+        /** How often the date is checked, so a new day counts while the game is open. */
+        private static final float DAY_CHECK_SECONDS = 1f;
 
         private final UiContext ui;
         /** The birthday frame, or null when the image file is missing. */
         private final Texture frame;
+        private final StatsService stats;
+        private float sinceDayCheck;
         private boolean birthday;
         private Picture shown;
         private String shownName;
         private int photoVersion = -1;
 
-        ProfileButton(UiContext ui, Texture frame) {
+        ProfileButton(UiContext ui, Texture frame, StatsService stats) {
             this.ui = ui;
             this.frame = frame;
+            this.stats = stats;
             size(SIZE);
             setTouchable(Touchable.enabled);
             addListener(new ClickListener() {
@@ -66,6 +73,11 @@ public final class ProfileGameFeature implements GameFeature {
         public void act(float delta) {
             super.act(delta);
             refresh();
+            sinceDayCheck += delta;
+            if (sinceDayCheck >= DAY_CHECK_SECONDS) {
+                sinceDayCheck = 0f;
+                stats.dayPlayed(ui.accounts().realToday());
+            }
         }
 
         private void refresh() {
