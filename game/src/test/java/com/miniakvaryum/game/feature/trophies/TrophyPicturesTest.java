@@ -23,7 +23,8 @@ class TrophyPicturesTest {
                 assertThat(TrophyStrings.itemName(item.itemId())).as(item.itemId()).isNotEqualTo(item.itemId());
             }
         }
-        for (String file : new String[] {"trophy", "trophy-locked", "gift", "food", "coins", "items/deco.chest-closed"}) {
+        for (String file : new String[] {"trophy", "trophy-locked", "gift-lid", "gift-box-open", "frame-locked",
+            "frame-ready", "frame-claimed", "pearl", "bubble", "food", "coins", "items/deco.chest-closed"}) {
             assertThat(Files.exists(ASSETS.resolve("trophies/" + file + ".png"))).as(file).isTrue();
         }
     }

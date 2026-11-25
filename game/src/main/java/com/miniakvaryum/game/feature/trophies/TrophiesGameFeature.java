@@ -25,7 +25,7 @@ public final class TrophiesGameFeature implements GameFeature {
     public void install(UiContext ui) {
         TrophyService trophies = ui.session().get(TrophyService.class);
         TrophyIcons icons = new TrophyIcons(ui.shapes());
-        RewardReveal reveal = new SimpleReveal(ui.skin());
+        RewardReveal reveal = new AnimatedReveal(ui.skin(), icons);
         ui.nav().register(TrophyRoadScreen.ID, () -> new TrophyRoadScreen(ui, icons, reveal));
 
         TextButton button = ui.main().addButton(TrophyStrings.TROPHIES, () -> ui.nav().show(TrophyRoadScreen.ID));

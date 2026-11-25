@@ -1,7 +1,9 @@
 package com.miniakvaryum.game.feature.trophies;
 
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.math.Interpolation;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
@@ -36,14 +38,17 @@ final class TrophyRoadScreen extends BaseScreen {
     static final String ID = "trophies";
 
     private static final float CONNECTOR = 90f;
-    private static final float LINE = 10f;
+    private static final int DOTS = 4;
+    private static final float PEARL = 18f;
+    private static final float BUBBLE = 15f;
+    private static final float BUBBLE_ALPHA = 0.75f;
+    private static final float BUBBLE_RISE = 4f;
     private static final float DIVIDER = 140f;
     private static final float SMALL_TEXT = 1.2f;
     private static final float BUTTON_WIDTH = 176f;
     private static final int SET_SIZE = 4;
     private static final Color BACKGROUND = new Color(0.05f, 0.24f, 0.38f, 1f);
-    private static final Color LINE_DONE = Color.valueOf("F2B84B");
-    private static final Color LINE_TODO = new Color(1f, 1f, 1f, 0.15f);
+    private static final Color YOU_COLOR = Color.valueOf("FFE08A");
     private static final Color HINT = new Color(1f, 1f, 1f, 0.75f);
 
     private final UiContext ui;
@@ -167,22 +172,32 @@ final class TrophyRoadScreen extends BaseScreen {
         return divider;
     }
 
-    /** The line before a trophy, filled as far as the child got; "You: 9" stands on it. */
+    /**
+     * The way to a trophy: pearls for the tasks already done, bubbles for the rest; "You: 9"
+     * stands where the pearls end.
+     */
     private Table connector(int from, int to, int approved) {
         float done = Math.max(0f, Math.min(1f, (approved - from) / (float) (to - from)));
+        int pearls = Math.round(done * DOTS);
         Table connector = new Table();
-        boolean here = approved >= from && approved < to;
-        if (here) {
+        if (approved >= from && approved < to) {
             Label you = new Label(String.format(TrophyStrings.YOU, approved), skin);
             you.setFontScale(SMALL_TEXT);
-            you.setColor(LINE_DONE);
-            connector.add(you).colspan(2).padBottom(6).row();
+            you.setColor(YOU_COLOR);
+            connector.add(you).colspan(DOTS).padBottom(4).row();
         }
-        float width = CONNECTOR - 8f;
-        Image filled = new Image(skin.newDrawable(UiSkin.WHITE, LINE_DONE));
-        Image empty = new Image(skin.newDrawable(UiSkin.WHITE, LINE_TODO));
-        connector.add(filled).size(width * done, LINE);
-        connector.add(empty).size(width * (1f - done), LINE);
+        for (int i = 0; i < DOTS; i++) {
+            boolean pearl = i < pearls;
+            Image dot = new Image(pearl ? icons.pearl() : icons.roadBubble());
+            if (!pearl) {
+                dot.getColor().a = BUBBLE_ALPHA;
+                dot.addAction(Actions.sequence(Actions.delay(i * 0.25f), Actions.forever(Actions.sequence(
+                        Actions.moveBy(0f, BUBBLE_RISE, 0.9f, Interpolation.sine),
+                        Actions.moveBy(0f, -BUBBLE_RISE, 0.9f, Interpolation.sine)))));
+            }
+            float size = pearl ? PEARL : BUBBLE;
+            connector.add(dot).size(size).pad(0f, 2f, 0f, 2f);
+        }
         return connector;
     }
 

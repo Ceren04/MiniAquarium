@@ -53,6 +53,35 @@ public final class ShapeTextures implements Disposable {
         return placeholder.get();
     }
 
+    /**
+     * Soft light rays shining out from the center (a sunburst), fading towards the edge. Used
+     * behind a present that opens.
+     *
+     * @param rays number of rays around the circle
+     */
+    public Texture sunburst(int size, Color color, int rays) {
+        Pixmap pixmap = newPixmap(size, size);
+        float center = size / 2f;
+        double step = Math.PI * 2 / rays;
+        for (int y = 0; y < size; y++) {
+            for (int x = 0; x < size; x++) {
+                float dx = x + 0.5f - center;
+                float dy = y + 0.5f - center;
+                float distance = (float) Math.sqrt(dx * dx + dy * dy) / center;
+                if (distance > 1f) {
+                    continue;
+                }
+                double angle = Math.atan2(dy, dx) + Math.PI;
+                double inRay = (angle % step) / step;          // 0..1 across one ray and its gap
+                float ray = inRay < 0.5 ? 1f : 0f;
+                float alpha = color.a * (1f - distance) * (0.35f + 0.65f * ray);
+                pixmap.setColor(color.r, color.g, color.b, alpha);
+                pixmap.drawPixel(x, y);
+            }
+        }
+        return toTexture(pixmap);
+    }
+
     /** A filled rectangle. */
     public Texture rect(int width, int height, Color color) {
         Pixmap pixmap = newPixmap(width, height);

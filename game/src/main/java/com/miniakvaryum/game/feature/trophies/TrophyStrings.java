@@ -37,7 +37,7 @@ final class TrophyStrings {
     static final String NEW_FISH = "New fish!";
     static final String FOOD_DETAIL = "Your fish will love it.";
     static final String COINS_DETAIL = "Into your piggy bank.";
-    static final String ITEM_DETAIL = "It waits for you until the inventory is ready.";
+    static final String ITEM_DETAIL = "Saved for your aquarium.";
     static final String SET_PROGRESS = "%s set: %d / %d";
     static final String SET_COMPLETE = "%s set complete!";
 

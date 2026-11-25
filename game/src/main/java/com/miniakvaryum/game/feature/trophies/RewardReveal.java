@@ -7,9 +7,8 @@ import com.badlogic.gdx.scenes.scene2d.Stage;
  * Shows what a collected trophy gave. Only a picture: the reward is already written when this is
  * shown, so closing the app during the animation loses nothing.
  *
- * <p>V12 uses {@link SimpleReveal} (a card that grows in). The animated version of the plan
- * (shaking present, light, confetti, reward rising) can replace it later without touching the
- * trophy logic.
+ * <p>{@link AnimatedReveal} plays the opening of the plan (shaking present, lid, light rays,
+ * confetti, reward rising). Another version can replace it without touching the trophy logic.
  */
 interface RewardReveal {
 

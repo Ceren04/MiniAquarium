@@ -10,79 +10,66 @@ import com.badlogic.gdx.scenes.scene2d.ui.Container;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
+import com.badlogic.gdx.scenes.scene2d.ui.Stack;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.Align;
 import com.miniakvaryum.domain.feature.trophies.api.Milestone;
 import com.miniakvaryum.domain.feature.trophies.api.TrophyState;
-import com.miniakvaryum.game.core.ui.UiSkin;
 
 /**
- * One trophy on the road. Locked: gray trophy, its reward and "3 more tasks". Ready: a present
- * that breathes; a tap opens it. Collected: gold trophy, its reward and "Collected".
+ * One trophy on the road, in its sea frame. The reward is a surprise until it is collected:
+ * <ul>
+ *   <li>Locked (stone frame): gray trophy and "3 more tasks".</li>
+ *   <li>Ready (golden coral frame): a present that breathes; a tap opens it.</li>
+ *   <li>Collected (shell frame): gold trophy, the reward's picture and name, "Collected".</li>
+ * </ul>
  */
-final class TrophyTile extends Table {
+final class TrophyTile extends Stack {
 
-    static final float WIDTH = 170f;
+    static final float WIDTH = 182f;
     static final float HEIGHT = 260f;
-    private static final float ICON = 88f;
-    private static final float REWARD = 64f;
-    private static final Color LOCKED_REWARD = new Color(1f, 1f, 1f, 0.55f);
-    private static final float SMALL_TEXT = 1.15f;
-    private static final float PULSE = 1.12f;
+    /** Space for the frame's border, so the content stays on the flat inside. */
+    private static final float BORDER_SIDE = 24f;
+    private static final float BORDER_TOP = 26f;
+    private static final float BORDER_BOTTOM = 28f;
+    private static final float BIG_ICON = 104f;
+    private static final float SMALL_ICON = 62f;
+    /** Width of the present; its lid is a little wider and it breathes up to 10 % bigger. */
+    private static final float GIFT = 86f;
+    private static final float REWARD = 58f;
+    private static final float SMALL_TEXT = 1.1f;
+    private static final float PULSE = 1.1f;
     private static final float PULSE_SECONDS = 0.7f;
-    private static final Color LOCKED = new Color(1f, 1f, 1f, 0.08f);
-    private static final Color READY = Color.valueOf("2F7FB5");
-    private static final Color CLAIMED = new Color(1f, 1f, 1f, 0.16f);
-    private static final Color GOLD = Color.valueOf("F2B84B");
-    private static final Color GREEN = Color.valueOf("8EE39B");
-    private static final Color HINT = new Color(1f, 1f, 1f, 0.7f);
+    private static final Color GOLD = Color.valueOf("FFE08A");
+    private static final Color GREEN = Color.valueOf("FFFFFF");
+    private static final Color HINT = new Color(1f, 1f, 1f, 0.85f);
 
     TrophyTile(Skin skin, TrophyIcons icons, Milestone milestone, TrophyState state, int approved, Runnable onOpen) {
+        add(new Image(icons.frame(state)));
+        Table content = new Table();
+        content.pad(BORDER_TOP, BORDER_SIDE, BORDER_BOTTOM, BORDER_SIDE);
+        add(content);
+
         int threshold = milestone.threshold();
-        setBackground(skin.newDrawable(UiSkin.WHITE,
-                state == TrophyState.READY ? READY : state == TrophyState.CLAIMED ? CLAIMED : LOCKED));
-        pad(8f);
-
-        add(small(skin, threshold == 1 ? TrophyStrings.ONE_TASK : String.format(TrophyStrings.TASKS, threshold),
+        content.add(small(skin, threshold == 1 ? TrophyStrings.ONE_TASK : String.format(TrophyStrings.TASKS, threshold),
                 HINT)).row();
+        float inner = WIDTH - 2 * BORDER_SIDE;
 
-        Image icon = new Image(state == TrophyState.READY ? icons.gift()
-                : state == TrophyState.CLAIMED ? icons.trophy() : icons.locked());
-        Container<Image> iconBox = new Container<>(icon).size(ICON);
-        add(iconBox).size(ICON).padTop(4f).row();
-
-        // The reward is visible in every state, so the child knows what comes (plan).
-        Actor picture = icons.picture(milestone.reward());
         if (state == TrophyState.LOCKED) {
-            picture.setColor(LOCKED_REWARD);
-        }
-        add(picture).size(REWARD).padTop(4f).row();
-
-        Label reward = small(skin, TrophyStrings.reward(milestone.reward()), Color.WHITE);
-        reward.setWrap(true);
-        reward.setAlignment(Align.center);
-        add(reward).width(WIDTH - 16f).padTop(2f).row();
-
-        String status;
-        Color color;
-        if (state == TrophyState.LOCKED) {
+            content.add(new Image(icons.locked())).size(BIG_ICON).expandY().row();
             int missing = threshold - approved;
-            status = missing == 1 ? TrophyStrings.ONE_MORE_TASK : String.format(TrophyStrings.MORE_TASKS, missing);
-            color = HINT;
+            content.add(small(skin, missing == 1 ? TrophyStrings.ONE_MORE_TASK
+                    : String.format(TrophyStrings.MORE_TASKS, missing), HINT));
         } else if (state == TrophyState.READY) {
-            status = TrophyStrings.TAP_TO_OPEN;
-            color = GOLD;
-        } else {
-            status = TrophyStrings.COLLECTED;
-            color = GREEN;
-        }
-        add(small(skin, status, color)).expandY().bottom();
-
-        if (state == TrophyState.READY) {
-            iconBox.setTransform(true);
-            iconBox.setOrigin(ICON / 2f, ICON / 2f);
-            iconBox.addAction(Actions.forever(Actions.sequence(
+            GiftPicture gift = icons.gift();
+            float giftHeight = gift.heightFor(GIFT);
+            Container<GiftPicture> box = new Container<>(gift).size(GIFT, giftHeight);
+            box.setTransform(true);
+            content.add(box).size(GIFT, giftHeight).expandY().row();
+            content.add(small(skin, TrophyStrings.TAP_TO_OPEN, GOLD));
+            box.setOrigin(GIFT / 2f, giftHeight / 2f);
+            box.addAction(Actions.forever(Actions.sequence(
                     Actions.scaleTo(PULSE, PULSE, PULSE_SECONDS, Interpolation.sine),
                     Actions.scaleTo(1f, 1f, PULSE_SECONDS, Interpolation.sine))));
             setTouchable(Touchable.enabled);
@@ -92,6 +79,15 @@ final class TrophyTile extends Table {
                     onOpen.run();
                 }
             });
+        } else {
+            content.add(new Image(icons.trophy())).size(SMALL_ICON).row();
+            Actor picture = icons.picture(milestone.reward());
+            content.add(picture).size(REWARD).padTop(2f).row();
+            Label reward = small(skin, TrophyStrings.reward(milestone.reward()), Color.WHITE);
+            reward.setWrap(true);
+            reward.setAlignment(Align.center);
+            content.add(reward).width(inner).expandY().row();
+            content.add(small(skin, TrophyStrings.COLLECTED, GREEN));
         }
     }
 
@@ -99,6 +95,7 @@ final class TrophyTile extends Table {
         Label label = new Label(text, skin);
         label.setFontScale(SMALL_TEXT);
         label.setColor(color);
+        label.setAlignment(Align.center);
         return label;
     }
 }
