@@ -6,7 +6,6 @@ import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
-import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
@@ -21,7 +20,7 @@ final class SimpleReveal implements RewardReveal {
 
     private static final float CARD_WIDTH = 560f;
     private static final float CARD_HEIGHT = 470f;
-    private static final float ICON = 170f;
+    private static final float ICON = 190f;
     private static final float GROW_SECONDS = 0.35f;
     private static final float SMALL_TEXT = 1.2f;
     private static final Color SHADE = new Color(0f, 0f, 0f, 0.6f);
@@ -46,9 +45,7 @@ final class SimpleReveal implements RewardReveal {
         card.setBackground(skin.newDrawable(UiSkin.WHITE, CARD));
         card.setTransform(true);
         card.pad(UiConfig.GAP * 2);
-        if (content.icon() != null) {
-            card.add(new Image(content.icon())).size(ICON).row();
-        }
+        card.add(content.picture()).size(ICON).row();
         Label title = new Label(content.title(), skin, UiSkin.TITLE);
         title.setColor(GOLD);
         card.add(title).padTop(UiConfig.GAP).row();

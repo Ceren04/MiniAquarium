@@ -2,6 +2,7 @@ package com.miniakvaryum.game.feature.trophies;
 
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.math.Interpolation;
+import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
@@ -24,7 +25,9 @@ final class TrophyTile extends Table {
 
     static final float WIDTH = 170f;
     static final float HEIGHT = 260f;
-    private static final float ICON = 110f;
+    private static final float ICON = 88f;
+    private static final float REWARD = 64f;
+    private static final Color LOCKED_REWARD = new Color(1f, 1f, 1f, 0.55f);
     private static final float SMALL_TEXT = 1.15f;
     private static final float PULSE = 1.12f;
     private static final float PULSE_SECONDS = 0.7f;
@@ -47,12 +50,19 @@ final class TrophyTile extends Table {
         Image icon = new Image(state == TrophyState.READY ? icons.gift()
                 : state == TrophyState.CLAIMED ? icons.trophy() : icons.locked());
         Container<Image> iconBox = new Container<>(icon).size(ICON);
-        add(iconBox).size(ICON).padTop(6f).row();
+        add(iconBox).size(ICON).padTop(4f).row();
+
+        // The reward is visible in every state, so the child knows what comes (plan).
+        Actor picture = icons.picture(milestone.reward());
+        if (state == TrophyState.LOCKED) {
+            picture.setColor(LOCKED_REWARD);
+        }
+        add(picture).size(REWARD).padTop(4f).row();
 
         Label reward = small(skin, TrophyStrings.reward(milestone.reward()), Color.WHITE);
         reward.setWrap(true);
         reward.setAlignment(Align.center);
-        add(reward).width(WIDTH - 16f).padTop(6f).row();
+        add(reward).width(WIDTH - 16f).padTop(2f).row();
 
         String status;
         Color color;

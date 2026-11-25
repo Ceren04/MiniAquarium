@@ -193,7 +193,7 @@ final class TrophyRoadScreen extends BaseScreen {
         }
         Reward reward = milestone.reward();
         String name = reward instanceof ItemReward item ? TrophyStrings.itemName(item.itemId()) : null;
-        reveal.show(stage, new RewardReveal.Content(icons.trophy(), TrophyStrings.revealTitle(reward), name,
+        reveal.show(stage, new RewardReveal.Content(icons.picture(reward), TrophyStrings.revealTitle(reward), name,
                 detail(reward)), this::rebuild);
     }
 

@@ -39,6 +39,20 @@ public final class ShapeTextures implements Disposable {
         return placeholder.get();
     }
 
+    /**
+     * Like {@link #fileOr(String, Supplier)}, but the loaded picture stays smooth when it is drawn
+     * much smaller than the file (mipmaps, linear filter), for example a 256 px icon in a 64 px box.
+     */
+    public Texture smoothFileOr(String path, Supplier<Texture> placeholder) {
+        FileHandle file = Gdx.files.internal(path);
+        if (file.exists()) {
+            Texture texture = own(new Texture(file, true));
+            texture.setFilter(Texture.TextureFilter.MipMapLinearLinear, Texture.TextureFilter.Linear);
+            return texture;
+        }
+        return placeholder.get();
+    }
+
     /** A filled rectangle. */
     public Texture rect(int width, int height, Color color) {
         Pixmap pixmap = newPixmap(width, height);
