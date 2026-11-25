@@ -9,6 +9,9 @@ import com.miniakvaryum.domain.feature.economy.api.Currency;
 import com.miniakvaryum.domain.feature.economy.api.TxResult;
 import com.miniakvaryum.domain.feature.economy.api.Wallet;
 import com.miniakvaryum.domain.feature.energy.api.EnergyService;
+import com.miniakvaryum.domain.feature.tasks.api.TaskService;
+import com.miniakvaryum.domain.feature.security.api.PinService;
+import com.miniakvaryum.domain.feature.security.api.ParentSession;
 import com.miniakvaryum.game.core.GameFeature;
 import com.miniakvaryum.game.core.UiContext;
 import java.io.UncheckedIOException;
@@ -30,6 +33,8 @@ import java.util.logging.Logger;
  *   <li><b>Undo</b>: back to the moment before the first jump.</li>
  *   <li><b>E: 0 / E: 100</b>: sets the energy, to try the energy bar and the minigame
  *       limit (for example "E: 0", then "+1 h": the bar shows 10).</li>
+ *   <li><b>+5 tasks</b>: after the parent PIN, creates and approves five real tasks through the
+ *       task code (for the trophy road, {@link ApproveTasksPanel}).</li>
  *   <li><b>Date</b>: opens the {@link DatePicker} to pretend another date, for example the
  *       child's birthday. The button then shows the pretend date.</li>
  *   <li><b>Clock</b>: real time, 21:00, 07:00: shifts only the game's local clock to try
@@ -48,14 +53,15 @@ public final class DevToolsGameFeature implements GameFeature {
     private static final String REF_PREFIX = "dev:food:";
     private static final int BAR_LAYER_Z = 100;
     private static final float MESSAGE_SECONDS = 2f;
-    private static final float WIDE_BUTTON = 125f;
-    private static final float NARROW_BUTTON = 85f;
-    private static final float UNDO_BUTTON = 100f;
-    private static final float DATE_BUTTON = 105f;
-    private static final float ENERGY_BUTTON = 90f;
+    private static final float WIDE_BUTTON = 110f;
+    private static final float NARROW_BUTTON = 80f;
+    private static final float TASKS_BUTTON = 110f;
+    private static final float UNDO_BUTTON = 90f;
+    private static final float DATE_BUTTON = 95f;
+    private static final float ENERGY_BUTTON = 85f;
     private static final long HOUR = 3_600_000L;
     private static final long MINUTE = 60_000L;
-    private static final float CLOCK_BUTTON = 150f;
+    private static final float CLOCK_BUTTON = 145f;
     private static final LocalTime BEDTIME_STARTS = LocalTime.of(21, 0);
     private static final LocalTime MORNING = LocalTime.of(7, 0);
     private static final int NOON = 12;
@@ -84,6 +90,12 @@ public final class DevToolsGameFeature implements GameFeature {
         TextButton date = bar.addButton(DevToolsStrings.DATE, DATE_BUTTON, picker::toggle);
         picker.setOnChange(() -> date.setText(picker.buttonText()));
         bar.addToPanel(picker);
+        ApproveTasksPanel approve = new ApproveTasksPanel(ui.skin(), worldWidth, ui.session().get(TaskService.class),
+                ui.session().get(ParentSession.class), ui.session().get(PinService.class));
+        bar.addButton(DevToolsStrings.APPROVE_TASKS, TASKS_BUTTON, approve::toggle);
+        approve.setOnOpen(() -> picker.setVisible(false));
+        picker.setOnOpen(() -> approve.setVisible(false));
+        bar.addToPanel(approve);
         if (ui.session().get(LocalClock.class) instanceof AdjustableLocalClock clock) {
             addClockButton(bar, clock, ui.session().get(BedtimeService.class));
         }
@@ -91,7 +103,8 @@ public final class DevToolsGameFeature implements GameFeature {
         bar.setShown(time.hasCheckpoint());
 
         ui.main().addWorldLayer(BAR_LAYER_Z, bar);
-        ui.main().addWorldTapHandler((x, y) -> bar.isShown() && picker.handleTap((float) x, (float) y)
+        ui.main().addWorldTapHandler((x, y) -> bar.isShown()
+                && (picker.handleTap((float) x, (float) y) || approve.handleTap((float) x, (float) y))
                 || bar.handleTap((float) x, (float) y));
     }
 

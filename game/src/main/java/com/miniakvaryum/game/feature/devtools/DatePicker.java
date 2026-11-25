@@ -56,6 +56,7 @@ final class DatePicker extends Group {
     private final Label year;
     private final Rectangle area;
     private Runnable onChange = () -> { };
+    private Runnable onOpen = () -> { };
 
     /**
      * @param worldWidth width of the world, to center the panel
@@ -150,9 +151,17 @@ final class DatePicker extends Group {
         return accounts.isTodayPretended() ? SHORT.format(accounts.today()) : DevToolsStrings.DATE;
     }
 
+    /** Called when the panel opens, for example to close the other panel. */
+    void setOnOpen(Runnable onOpen) {
+        this.onOpen = onOpen;
+    }
+
     /** Opens or closes the panel. */
     void toggle() {
         refresh();
+        if (!isVisible()) {
+            onOpen.run();
+        }
         setVisible(!isVisible());
     }
 
