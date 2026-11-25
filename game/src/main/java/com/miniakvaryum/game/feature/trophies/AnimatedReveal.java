@@ -29,7 +29,7 @@ import java.util.List;
  *   <li>The present shakes and starts to shine.</li>
  *   <li>The lid flies off, light rays shine out of the box, confetti bursts out.</li>
  *   <li>The reward rises out of the box into the middle of a shell card.</li>
- *   <li>Its name appears, then "Super!".</li>
+ *   <li>Its name appears, then "Collect".</li>
  * </ol>
  * A tap during the animation jumps to the end. The reward was written before this starts.
  */
@@ -37,11 +37,14 @@ final class AnimatedReveal implements RewardReveal {
 
     private static final float CENTER_X = UiConfig.VIEW_WIDTH / 2f;
     private static final float GIFT_WIDTH = 230f;
-    private static final float GIFT_BOTTOM = 210f;
+    private static final float GIFT_BOTTOM = 270f;
     private static final float CARD_WIDTH = 380f;
     private static final float CARD_HEIGHT = 540f;
     private static final float PICTURE = 180f;
-    private static final float PICTURE_Y = 440f;
+    private static final float PICTURE_Y = 500f;
+    /** Bottom of the shell card; the card stands higher so "Collect" fits under it. */
+    private static final float CARD_BOTTOM = 150f;
+    private static final float BUTTON_WIDTH = 220f;
     private static final float RAYS = 620f;
     private static final float SHAKE_DEGREES = 7f;
     private static final float SHAKE_STEP = 0.07f;
@@ -81,7 +84,7 @@ final class AnimatedReveal implements RewardReveal {
 
         // The shell card the reward lands on.
         Image card = new Image(icons.frame(TrophyState.CLAIMED));
-        card.setBounds(CENTER_X - CARD_WIDTH / 2f, (UiConfig.VIEW_HEIGHT - CARD_HEIGHT) / 2f, CARD_WIDTH, CARD_HEIGHT);
+        card.setBounds(CENTER_X - CARD_WIDTH / 2f, CARD_BOTTOM, CARD_WIDTH, CARD_HEIGHT);
         card.setOrigin(Align.center);
         card.getColor().a = 0f;
         layer.addActor(card);
@@ -109,9 +112,9 @@ final class AnimatedReveal implements RewardReveal {
         // Texts and the button.
         List<Actor> texts = new ArrayList<>();
         Label title = label(content.title(), null, TITLE, TITLE_TEXT);
-        place(title, 310f);
+        place(title, 370f);
         texts.add(title);
-        float y = 268f;
+        float y = 328f;
         if (content.name() != null) {
             Label name = label(content.name(), null, NAME, 1f);
             place(name, y);
@@ -128,8 +131,9 @@ final class AnimatedReveal implements RewardReveal {
             text.getColor().a = 0f;
             layer.addActor(text);
         }
-        TextButton close = new TextButton(TrophyStrings.SUPER, skin);
-        close.setBounds(CENTER_X - 90f, 132f, 180f, UiConfig.MIN_TOUCH_SIZE);
+        TextButton close = new TextButton(TrophyStrings.COLLECT, skin);
+        close.setBounds(CENTER_X - BUTTON_WIDTH / 2f, CARD_BOTTOM - UiConfig.MIN_TOUCH_SIZE - UiConfig.GAP * 2,
+                BUTTON_WIDTH, UiConfig.MIN_TOUCH_SIZE);
         close.getColor().a = 0f;
         close.setTouchable(Touchable.disabled);
         close.addListener(new ChangeListener() {
@@ -175,7 +179,7 @@ final class AnimatedReveal implements RewardReveal {
         card.addAction(Actions.sequence(Actions.delay(rise + 0.2f),
                 Actions.parallel(Actions.fadeIn(0.35f), Actions.scaleTo(1f, 1f, 0.35f, Interpolation.swingOut))));
 
-        // 4. Name, then "Super!".
+        // 4. Name, then "Collect".
         float textsAt = rise + 0.6f;
         for (int i = 0; i < texts.size(); i++) {
             texts.get(i).addAction(Actions.sequence(Actions.delay(textsAt + i * 0.12f), Actions.fadeIn(0.25f)));

@@ -27,7 +27,7 @@ final class TrophyStrings {
     static final String TAP_TO_OPEN = "Tap to open!";
     static final String COLLECTED = "Collected";
     static final String BACK = "Back";
-    static final String SUPER = "Super!";
+    static final String COLLECT = "Collect";
 
     static final String PLUS_FOOD = "+%d food";
     static final String PLUS_COINS = "+%d coins";

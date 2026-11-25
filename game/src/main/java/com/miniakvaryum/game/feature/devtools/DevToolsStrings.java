@@ -31,16 +31,6 @@ final class DevToolsStrings {
     static final String MINUS = "-";
 
     static final String APPROVE_TASKS = "+5 tasks";
-    static final String PIN_TITLE = "Parent PIN: approve 5 tasks";
-    static final String PIN_EMPTY = "_ _ _ _";
-    static final String PIN_DELETE = "Del";
-    static final String PIN_OK = "OK";
-    static final String PIN_NOT_SET = "No parent PIN yet. Set it in Parents first.";
-    static final String PIN_LENGTH = "The PIN has a different length.";
-    static final String PIN_WRONG = "Wrong PIN. %d tries left.";
-    static final String PIN_LOCKED = "Locked. Try again in %d min.";
-    static final String TASKS_APPROVED = "%d tasks approved.";
-    static final String DEV_TASK = "Dev task %d";
 
     private DevToolsStrings() {
     }

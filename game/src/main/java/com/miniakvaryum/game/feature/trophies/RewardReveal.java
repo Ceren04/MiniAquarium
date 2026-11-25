@@ -19,7 +19,7 @@ interface RewardReveal {
     /**
      * Shows the card on top of the stage.
      *
-     * @param onClose called once when the child taps "Super!"
+     * @param onClose called once when the child taps "Collect"
      */
     void show(Stage stage, Content content, Runnable onClose);
 }
