@@ -17,6 +17,8 @@ import com.miniakvaryum.domain.feature.profile.ProfileFeature;
 import com.miniakvaryum.domain.feature.security.SecurityConfig;
 import com.miniakvaryum.domain.feature.security.SecurityFeature;
 import com.miniakvaryum.domain.feature.stats.StatsFeature;
+import com.miniakvaryum.domain.feature.trophies.TrophiesFeature;
+import com.miniakvaryum.domain.feature.trophies.TrophyConfig;
 import com.miniakvaryum.domain.feature.tasks.TasksConfig;
 import com.miniakvaryum.domain.feature.tasks.TasksFeature;
 import java.util.List;
@@ -49,7 +51,8 @@ public final class DomainFeatures {
                 new EnergyFeature(EnergyConfig.defaults(), FishLevels.ALL_LEVEL_ONE),
                 new DirtFeature(DirtConfig.defaults()),
                 new ProfileFeature(),                            // needs aquarium
-                new StatsFeature()                               // needs economy, tasks, aquarium
+                new StatsFeature(),                              // needs economy, tasks, aquarium
+                new TrophiesFeature(TrophyConfig.defaults())     // needs economy, tasks
         );
     }
 }

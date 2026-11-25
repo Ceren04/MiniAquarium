@@ -31,6 +31,7 @@ def coverageGatedPackages = [
         'com/miniakvaryum/domain/feature/energy/**',
         'com/miniakvaryum/domain/feature/profile/**',
         'com/miniakvaryum/domain/feature/stats/**',
+        'com/miniakvaryum/domain/feature/trophies/**',
         'com/miniakvaryum/domain/feature/bedtime/**',
 ]
 
