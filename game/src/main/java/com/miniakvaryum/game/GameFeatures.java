@@ -10,6 +10,7 @@ import com.miniakvaryum.game.feature.energy.EnergyGameFeature;
 import com.miniakvaryum.game.feature.profile.ProfileGameFeature;
 import com.miniakvaryum.game.feature.security.SecurityGameFeature;
 import com.miniakvaryum.game.feature.tasks.TasksGameFeature;
+import com.miniakvaryum.game.feature.trophies.TrophiesGameFeature;
 import java.util.List;
 
 /**
@@ -36,6 +37,7 @@ public final class GameFeatures {
                 new AquariumGameFeature(),
                 new DirtGameFeature(),          // after the aquarium: feed mode wins taps
                 new TasksGameFeature(),
+                new TrophiesGameFeature(),      // "Trophies" between "Tasks" and "Parents"
                 // After a correct PIN the gate opens the parent area of the tasks feature.
                 new SecurityGameFeature(TasksGameFeature.SCREEN_PARENT_AREA)
                 

@@ -15,6 +15,8 @@ final class ProfileStrings {
     static final String COINS_EARNED = "Coins earned";
     static final String CLEANINGS = "Cleanings";
     static final String FISH = "Fish";
+    static final String TROPHIES = "Trophies";
+    static final String TROPHY_COUNT = "%d / %d";
     static final String DAYS_PLAYED = "Days played";
     static final String BACK = "Back";
     static final String EDIT_PROFILE = "Edit profile";

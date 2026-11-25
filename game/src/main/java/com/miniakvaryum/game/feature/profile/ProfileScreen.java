@@ -19,6 +19,7 @@ import com.miniakvaryum.domain.feature.aquarium.api.world.AquariumWorld;
 import com.miniakvaryum.domain.feature.profile.api.ProfileService;
 import com.miniakvaryum.domain.feature.stats.api.Stats;
 import com.miniakvaryum.domain.feature.stats.api.StatsService;
+import com.miniakvaryum.domain.feature.trophies.api.TrophyService;
 import com.miniakvaryum.game.core.UiContext;
 import com.miniakvaryum.game.core.account.AccountScreens;
 import com.miniakvaryum.game.core.ui.BaseScreen;
@@ -30,18 +31,21 @@ import java.util.Optional;
 /**
  * The profile: picture, name and @username (on the birthday with a frame around the picture and
  * "Happy birthday!"), the favorite fish swimming in its box with the other fish below to pick
- * from, "My stats", and the buttons "Edit profile" and "Sign out". It is a child area: no PIN.
+ * from, "My stats" (the trophy tile opens the trophy road), and the buttons "Edit profile" and
+ * "Sign out". It is a child area: no PIN.
  */
 final class ProfileScreen extends BaseScreen {
 
     /** Screen id. */
     static final String ID = "profile";
 
+    /** Screen id of the trophy road (feature "trophies"); UI features open each other's screens by id. */
+    private static final String TROPHY_ROAD = "trophies";
     private static final float PICTURE = 150f;
     private static final float FISH_BOX_WIDTH = 420f;
     private static final float FISH_BOX_HEIGHT = 150f;
     private static final float SMALL_FISH = 70f;
-    private static final float TILE_WIDTH = 180f;
+    private static final float TILE_WIDTH = 158f;
     private static final float TILE_HEIGHT = 92f;
     private static final float BUTTON_WIDTH = 220f;
     private static final Color BACKGROUND = new Color(0.05f, 0.24f, 0.38f, 1f);
@@ -56,6 +60,7 @@ final class ProfileScreen extends BaseScreen {
     private final ProfileService profile;
     private final StatsService stats;
     private final AquariumWorld world;
+    private final TrophyService trophies;
     private final Table content = new Table();
     /** The birthday frame, or null when the image file is missing. Owned by {@code ui.shapes()}. */
     private final Texture birthdayFrame;
@@ -66,6 +71,7 @@ final class ProfileScreen extends BaseScreen {
         this.profile = ui.session().get(ProfileService.class);
         this.stats = ui.session().get(StatsService.class);
         this.world = ui.session().get(AquariumWorld.class);
+        this.trophies = ui.session().get(TrophyService.class);
         this.birthdayFrame = ui.shapes().fileOr(BirthdayFrame.FILE, () -> null);
         Table root = newRootTable();
         root.add(content).grow();
@@ -189,20 +195,33 @@ final class ProfileScreen extends BaseScreen {
     private Table statsTiles() {
         Stats now = stats.snapshot();
         Table tiles = new Table();
-        tiles.add(new Label(ProfileStrings.MY_STATS, skin)).colspan(6).left().padBottom(6).row();
+        tiles.add(new Label(ProfileStrings.MY_STATS, skin)).colspan(7).left().padBottom(6).row();
         tile(tiles, now.tasksDone(), ProfileStrings.TASKS_DONE);
         tile(tiles, now.foodGiven(), ProfileStrings.FOOD_GIVEN);
         tile(tiles, now.coinsEarned(), ProfileStrings.COINS_EARNED);
         tile(tiles, now.cleanings(), ProfileStrings.CLEANINGS);
         tile(tiles, now.fishCount(), ProfileStrings.FISH);
         tile(tiles, now.daysPlayed(), ProfileStrings.DAYS_PLAYED);
+        Table trophyTile = tile(tiles, String.format(ProfileStrings.TROPHY_COUNT, trophies.claimedCount(),
+                trophies.milestones().size()), ProfileStrings.TROPHIES);
+        trophyTile.setTouchable(Touchable.enabled);
+        trophyTile.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                ui.nav().show(TROPHY_ROAD);
+            }
+        });
         return tiles;
     }
 
-    private void tile(Table tiles, long value, String label) {
+    private Table tile(Table tiles, long value, String label) {
+        return tile(tiles, String.valueOf(value), label);
+    }
+
+    private Table tile(Table tiles, String value, String label) {
         Table tile = new Table();
         tile.setBackground(skin.newDrawable(UiSkin.WHITE, TILE));
-        Label number = new Label(String.valueOf(value), skin, UiSkin.TITLE);
+        Label number = new Label(value, skin, UiSkin.TITLE);
         number.setAlignment(Align.center);
         tile.add(number).row();
         Label text = new Label(label, skin);
@@ -210,5 +229,6 @@ final class ProfileScreen extends BaseScreen {
         text.setColor(HINT);
         tile.add(text);
         tiles.add(tile).size(TILE_WIDTH, TILE_HEIGHT).pad(UiConfig.GAP / 2f);
+        return tile;
     }
 }
